@@ -1,0 +1,15 @@
+{
+  "name": "@local-first-rewards/database",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Supabase/PostgreSQL database migrations for Local First Rewards",
+  "scripts": {
+    "migrate": "supabase db push",
+    "reset": "supabase db reset",
+    "diff": "supabase db diff",
+    "generate-types": "supabase gen types typescript --local > ../shared/src/types/supabase.ts"
+  },
+  "devDependencies": {
+    "supabase": "^1.178.2"
+  }
+}
