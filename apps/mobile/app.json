@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Local First Rewards",
+    "slug": "local-first-rewards",
+    "version": "1.0.0",
+    "scheme": "localfirstrewards",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#1B4332"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Local First Rewards to use your location to find nearby businesses and calculate distance."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.localfirstrewards.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan receipts and upload business photos.",
+        "NSPhotoLibraryUsageDescription": "Used to select receipt images from your photo library."
+      }
+    },
+    "android": {
+      "package": "com.localfirstrewards.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#1B4332"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
