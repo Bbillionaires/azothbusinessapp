@@ -1,0 +1,170 @@
+import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient, createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Browser client (client components)
+export function createSupabaseBrowserClient() {
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+}
+
+// Server client (server components, route handlers)
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // Server component — cookies set in middleware
+        }
+      },
+    },
+  });
+}
+
+// Service role client — bypasses RLS. Use only in trusted server contexts.
+export function createSupabaseServiceClient() {
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+// Database type helpers
+export type AdminRole = 'admin_staff' | 'admin_manager' | 'super_admin';
+
+export type ReceiptStatus = 'pending' | 'approved' | 'rejected' | 'flagged' | 'resubmission_requested';
+
+export type BusinessStatus = 'pending' | 'active' | 'suspended' | 'rejected' | 'under_review';
+
+export type LegendTier =
+  | 'bronze'
+  | 'silver'
+  | 'gold'
+  | 'platinum'
+  | 'diamond'
+  | 'hall_of_legends';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: AdminRole;
+  avatar_url?: string;
+  created_at: string;
+  last_login?: string;
+}
+
+export interface Receipt {
+  id: string;
+  user_id: string;
+  business_id: string;
+  amount: number;
+  merchant_name: string;
+  receipt_date: string;
+  submitted_at: string;
+  status: ReceiptStatus;
+  fraud_score: number;
+  fraud_flags: string[];
+  image_url?: string;
+  ocr_data?: {
+    merchant: string;
+    date: string;
+    amount: number;
+    items?: Array<{ name: string; price: number }>;
+    tax?: number;
+    subtotal?: number;
+  };
+  receipt_hash?: string;
+  points_issued?: number;
+  reviewer_id?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+}
+
+export interface Business {
+  id: string;
+  name: string;
+  owner_id: string;
+  status: BusinessStatus;
+  category: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone?: string;
+  website?: string;
+  verified_at?: string;
+  created_at: string;
+  total_receipts?: number;
+  total_points_issued?: number;
+  fraud_receipt_count?: number;
+}
+
+export interface PlatformUser {
+  id: string;
+  email: string;
+  full_name: string;
+  phone?: string;
+  created_at: string;
+  total_points: number;
+  total_receipts: number;
+  approved_receipts: number;
+  rejected_receipts: number;
+  fraud_receipts: number;
+  approval_rate: number;
+  is_suspended: boolean;
+  suspension_reason?: string;
+  legend_tier?: LegendTier;
+}
+
+export interface Dispute {
+  id: string;
+  user_id: string;
+  receipt_id?: string;
+  business_id?: string;
+  dispute_type: 'points_missing' | 'wrong_amount' | 'fraud_claim' | 'other';
+  status: 'open' | 'in_review' | 'resolved' | 'dismissed';
+  description: string;
+  resolution?: string;
+  created_at: string;
+  updated_at: string;
+  assigned_to?: string;
+}
+
+export interface FraudAlert {
+  id: string;
+  receipt_id: string;
+  user_id: string;
+  fraud_score: number;
+  fraud_flags: string[];
+  detected_at: string;
+  status: 'new' | 'investigating' | 'confirmed' | 'false_positive';
+}
+
+export interface CommunityLegend {
+  id: string;
+  user_id: string;
+  full_name: string;
+  avatar_url?: string;
+  tier: LegendTier;
+  referrals: number;
+  spending_influenced: number;
+  reviews: number;
+  impact_score: number;
+  promoted_at: string;
+  promoted_by: string;
+  is_hall_of_legends: boolean;
+}
