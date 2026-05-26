@@ -18,7 +18,7 @@ interface Dispute {
   assigned_to?: string;
   resolution_note?: string;
   resolved_at?: string;
-  profiles?: { display_name?: string; email?: string } | null;
+  profiles?: { full_name?: string; email?: string } | null;
   receipts?: { merchant_name?: string; amount?: number } | null;
 }
 
@@ -66,7 +66,7 @@ export default function DisputesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('disputes')
-      .select('*, profiles!user_id(display_name, email), receipts(merchant_name, amount)')
+      .select('*, profiles!user_id(full_name, email), receipts(merchant_name, amount)')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -107,7 +107,7 @@ export default function DisputesPage() {
     critical: disputes.filter(d => d.priority === 'critical').length,
   };
 
-  const getUserLabel = (d: Dispute) => d.profiles?.display_name ?? d.profiles?.email ?? 'Unknown User';
+  const getUserLabel = (d: Dispute) => d.profiles?.full_name ?? d.profiles?.email ?? 'Unknown User';
   const getCreatedLabel = (d: Dispute) => d.created_at ? new Date(d.created_at).toLocaleDateString() : '';
 
   return (

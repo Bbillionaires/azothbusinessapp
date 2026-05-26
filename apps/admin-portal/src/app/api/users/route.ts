@@ -35,14 +35,14 @@ export async function GET(req: NextRequest) {
 
   let query = service
     .from('profiles')
-    .select('id, display_name, email, role, tier, status, points_balance, total_points_earned, legend_tier, created_at', { count: 'exact' })
+    .select('id, full_name, email, role, tier, status, points_balance, total_points_earned, legend_tier, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (role) query = query.eq('role', role);
   if (status) query = query.eq('status', status);
   if (tier) query = query.eq('tier', tier);
-  if (search) query = query.or(`display_name.ilike.%${search}%,email.ilike.%${search}%`);
+  if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
 
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

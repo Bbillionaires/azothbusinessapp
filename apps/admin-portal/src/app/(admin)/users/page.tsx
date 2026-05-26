@@ -6,7 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 
 interface UserRow {
   id: string;
-  display_name: string | null;
+  full_name: string | null;
   email: string | null;
   role: string | null;
   tier: string | null;
@@ -46,7 +46,7 @@ export default function UsersPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, display_name, email, role, tier, points_balance, is_legend, status, created_at')
+        .select('id, full_name, email, role, tier, points_balance, is_legend, status, created_at')
         .not('role', 'in', '("admin_staff","admin_manager","super_admin")')
         .order('created_at', { ascending: false })
         .limit(200);
@@ -72,7 +72,7 @@ export default function UsersPage() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const filtered = users.filter(u => {
-    const name = u.display_name ?? '';
+    const name = u.full_name ?? '';
     const email = u.email ?? '';
     const matchSearch = name.toLowerCase().includes(search.toLowerCase()) ||
       email.toLowerCase().includes(search.toLowerCase());
@@ -162,11 +162,11 @@ export default function UsersPage() {
                     <td className="pl-6 pr-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-gray-300">
-                          {getInitials(user.display_name)}
+                          {getInitials(user.full_name)}
                         </div>
                         <div>
                           <div className="font-medium text-gray-200 flex items-center gap-1">
-                            {user.display_name ?? 'Unknown'}
+                            {user.full_name ?? 'Unknown'}
                             {user.is_legend && <span className="text-xs">👑</span>}
                           </div>
                           <div className="text-xs text-gray-500">{user.email ?? '—'}</div>

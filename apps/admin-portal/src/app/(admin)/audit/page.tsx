@@ -15,7 +15,7 @@ type AuditLog = {
   metadata: Record<string, any>;
   ip_address: string | null;
   created_at: string;
-  profiles?: { display_name: string | null; email: string | null; role: string | null } | null;
+  profiles?: { full_name: string | null; email: string | null; role: string | null } | null;
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -51,7 +51,7 @@ export default function AuditPage() {
     async function load() {
       const { data } = await supabase
         .from('audit_logs')
-        .select('*, profiles!actor_id(display_name, email, role)')
+        .select('*, profiles!actor_id(full_name, email, role)')
         .order('created_at', { ascending: false })
         .limit(200);
       setLogs((data ?? []) as AuditLog[]);
@@ -63,7 +63,7 @@ export default function AuditPage() {
   const uniqueActions = ['All', ...new Set(logs.map(l => l.action))];
 
   const filtered = logs.filter(log => {
-    const actor = log.profiles?.display_name ?? log.profiles?.email ?? log.actor_id;
+    const actor = log.profiles?.full_name ?? log.profiles?.email ?? log.actor_id;
     const matchSearch = !search ||
       actor.toLowerCase().includes(search.toLowerCase()) ||
       log.action.toLowerCase().includes(search.toLowerCase()) ||
@@ -78,7 +78,7 @@ export default function AuditPage() {
     filtered.forEach(log => {
       rows.push([
         log.created_at,
-        log.profiles?.display_name ?? log.profiles?.email ?? log.actor_id,
+        log.profiles?.full_name ?? log.profiles?.email ?? log.actor_id,
         log.profiles?.role ?? '',
         log.action,
         log.target_type,
@@ -167,7 +167,7 @@ export default function AuditPage() {
                 </thead>
                 <tbody>
                   {filtered.map(log => {
-                    const actor = log.profiles?.display_name ?? log.profiles?.email ?? log.actor_id.slice(0, 8);
+                    const actor = log.profiles?.full_name ?? log.profiles?.email ?? log.actor_id.slice(0, 8);
                     const role = log.profiles?.role ?? 'unknown';
                     return (
                       <tr key={log.id} className="border-b border-slate-700/40 hover:bg-slate-700/20 font-mono text-xs">

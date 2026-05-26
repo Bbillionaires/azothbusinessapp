@@ -20,7 +20,7 @@ interface VerificationRequest {
     name: string;
     owner_id: string;
     profiles: {
-      display_name: string | null;
+      full_name: string | null;
       email: string | null;
     } | null;
   } | null;
@@ -77,7 +77,7 @@ export default function VerificationQueuePage() {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('business_verification_requests')
-      .select('*, businesses!inner(name, owner_id, profiles!owner_id(display_name, email))')
+      .select('*, businesses!inner(name, owner_id, profiles!owner_id(full_name, email))')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -214,7 +214,7 @@ export default function VerificationQueuePage() {
   // Render
   // ---------------------------------------------------------------------------
   const ownerLabel = (req: VerificationRequest) =>
-    req.businesses?.profiles?.display_name ??
+    req.businesses?.profiles?.full_name ??
     req.businesses?.profiles?.email ??
     req.businesses?.owner_id.slice(0, 8) + '…';
 
