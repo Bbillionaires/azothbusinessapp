@@ -9,8 +9,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 
 type Event = {
-  id: string; title: string; description: string | null; event_type: string;
-  starts_at: string; ends_at: string | null; address: string | null;
+  id: string; title: string; description: string | null; type: string;
+  start_at: string; end_at: string | null; address: string | null;
   city: string | null; is_free: boolean; points_reward: number;
   attendee_count: number; max_attendees: number | null;
   businesses: { name: string; city: string } | null;
@@ -66,20 +66,20 @@ export default function EventsScreen() {
       .from('events')
       .select('*, businesses(name, city)')
       .eq('status', 'published')
-      .gte('starts_at', now)
-      .order('starts_at', { ascending: true })
+      .gte('start_at', now)
+      .order('start_at', { ascending: true })
       .limit(30);
 
     if (filter === 'free') query = query.eq('is_free', true);
     if (filter === 'this_week') {
       const weekEnd = new Date();
       weekEnd.setDate(weekEnd.getDate() + 7);
-      query = query.lte('starts_at', weekEnd.toISOString());
+      query = query.lte('start_at', weekEnd.toISOString());
     }
     if (filter === 'this_month') {
       const monthEnd = new Date();
       monthEnd.setMonth(monthEnd.getMonth() + 1);
-      query = query.lte('starts_at', monthEnd.toISOString());
+      query = query.lte('start_at', monthEnd.toISOString());
     }
 
     const { data } = await query;
@@ -155,7 +155,7 @@ export default function EventsScreen() {
               <Text style={styles.emptyText}>Local businesses will be posting events soon. Check back!</Text>
             </View>
           ) : events.map(event => {
-            const config = EVENT_TYPE_CONFIG[event.event_type] ?? EVENT_TYPE_CONFIG.other;
+            const config = EVENT_TYPE_CONFIG[event.type] ?? EVENT_TYPE_CONFIG.other;
             const isRsvpd = rsvpdIds.has(event.id);
             const isFull = event.max_attendees !== null && event.attendee_count >= event.max_attendees;
 
@@ -163,8 +163,8 @@ export default function EventsScreen() {
               <Pressable key={event.id} onPress={() => router.push(`/events/${event.id}`)} style={styles.card}>
                 {/* Date stripe */}
                 <View style={styles.dateBadge}>
-                  <Text style={styles.dateBadgeDate}>{formatEventDate(event.starts_at)}</Text>
-                  <Text style={styles.dateBadgeTime}>{formatEventTime(event.starts_at)}</Text>
+                  <Text style={styles.dateBadgeDate}>{formatEventDate(event.start_at)}</Text>
+                  <Text style={styles.dateBadgeTime}>{formatEventTime(event.start_at)}</Text>
                 </View>
 
                 <View style={styles.cardBody}>
