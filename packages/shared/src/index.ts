@@ -16,3 +16,6 @@ export type { LegendTier, LeaderboardPeriod, LeaderboardCategory, UserBadge, Bad
 export { BADGE_DEFINITIONS, getBadgeDefinition, getBadgesByCategory } from './constants/badges.js';
 export type { BadgeDefinition, BadgeLevelDefinition } from './constants/badges.js';
 export { POINTS_CONFIG, TIER_THRESHOLDS, LEGEND_TIER_THRESHOLDS, getTierInfo, getPointsToNextTier, getTierProgressPct, calculateReceiptPoints, TIER_MAP } from './constants/points.js';
+
+// Utils
+export * from './utils/formatting.js';

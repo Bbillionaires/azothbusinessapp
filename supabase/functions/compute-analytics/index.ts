@@ -100,6 +100,10 @@ Deno.serve(async (req: Request) => {
       .select('id', { count: 'exact', head: true });
     results.rewards_expired = expiredRewards ?? 0;
 
+    // 6. Compute offer analytics: active offer counts per business + top businesses by redemptions
+    await updateOfferAnalytics(serviceClient, now);
+    results.offer_analytics_updated = true;
+
     return new Response(
       JSON.stringify({ success: true, computed_at: now.toISOString(), ...results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -159,6 +163,71 @@ async function updateLeaderboards(supabase: any) {
         });
       }
     }
+  }
+}
+
+async function updateOfferAnalytics(supabase: any, now: Date) {
+  // Count active offers per business and update businesses table
+  const { data: offerCounts } = await supabase
+    .from('business_offers')
+    .select('business_id')
+    .eq('is_active', true);
+
+  if (offerCounts && offerCounts.length > 0) {
+    const countByBusiness: Record<string, number> = {};
+    for (const row of offerCounts) {
+      countByBusiness[row.business_id] = (countByBusiness[row.business_id] ?? 0) + 1;
+    }
+
+    for (const [businessId, count] of Object.entries(countByBusiness)) {
+      await supabase
+        .from('businesses')
+        .update({ active_offers_count: count, updated_at: now.toISOString() })
+        .eq('id', businessId);
+    }
+
+    // Zero out businesses that now have no active offers
+    const businessesWithOffers = Object.keys(countByBusiness);
+    if (businessesWithOffers.length > 0) {
+      await supabase
+        .from('businesses')
+        .update({ active_offers_count: 0, updated_at: now.toISOString() })
+        .eq('is_active', true)
+        .gt('active_offers_count', 0)
+        .not('id', 'in', `(${businessesWithOffers.map(id => `'${id}'`).join(',')})`);
+    }
+  }
+
+  // Compute top businesses by offer redemptions (current month)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+  const { data: redemptions } = await supabase
+    .from('offer_redemptions')
+    .select('business_id')
+    .gte('created_at', monthStart)
+    .eq('status', 'completed');
+
+  if (redemptions && redemptions.length > 0) {
+    const redemptionsByBusiness: Record<string, number> = {};
+    for (const row of redemptions) {
+      redemptionsByBusiness[row.business_id] = (redemptionsByBusiness[row.business_id] ?? 0) + 1;
+    }
+
+    // Upsert into offer_analytics table with monthly redemption counts
+    const periodStart = monthStart.split('T')[0];
+    const periodEnd = now.toISOString().split('T')[0];
+
+    const analyticsRows = Object.entries(redemptionsByBusiness).map(([businessId, count]) => ({
+      business_id: businessId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      offer_redemptions: count,
+      updated_at: now.toISOString(),
+    }));
+
+    await supabase
+      .from('offer_analytics')
+      .upsert(analyticsRows, { onConflict: 'business_id,period_start' });
   }
 }
 

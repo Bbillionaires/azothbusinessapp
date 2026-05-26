@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, FileText, Users, Store, Receipt, BarChart2, ShieldAlert, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Download, FileText, Users, Store, Receipt, BarChart2, ShieldAlert, CheckCircle, XCircle, Clock, Coins } from 'lucide-react';
 import { RoleGuard } from '../../../components/layout/RoleGuard';
 
-type ExportType = 'users' | 'businesses' | 'receipts' | 'analytics';
+type ExportType = 'users' | 'businesses' | 'receipts' | 'analytics' | 'transactions';
 
 interface ExportConfig {
   type: ExportType;
@@ -52,6 +52,15 @@ const EXPORTS: ExportConfig[] = [
     color: 'text-purple-400',
     filename: 'local-first-rewards-analytics.csv',
     fields: ['user_id', 'city', 'period', 'rank', 'impact_score', 'total_spending', 'receipt_count', 'referral_count', 'computed_at'],
+  },
+  {
+    type: 'transactions',
+    label: 'Transactions',
+    description: 'Full immutable points transaction ledger with types, amounts, and reference IDs.',
+    icon: Coins,
+    color: 'text-orange-400',
+    filename: 'local-first-rewards-transactions.csv',
+    fields: ['id', 'user_id', 'amount', 'type', 'description', 'reference_id', 'reference_type', 'created_at'],
   },
 ];
 

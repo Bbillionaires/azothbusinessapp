@@ -25,35 +25,52 @@ interface UserStats {
   profile_complete: boolean;
   businesses_followed: number;
   streak_days: number;
+  job_applications_count: number;
+  is_community_legend: boolean;
+  account_created_at: string;
 }
 
 const BADGE_CRITERIA: BadgeCriteria[] = [
   // Spending milestones
   { badge_type: 'first_receipt', badge_name: '🧾 First Receipt', check: s => s.receipts_approved >= 1 },
   { badge_type: 'spender_10', badge_name: '💵 $100 Local Spender', check: s => s.total_spent >= 100 },
+  { badge_type: 'big_spender', badge_name: '💰 Big Spender', check: s => s.total_spent >= 500 },
   { badge_type: 'spender_500', badge_name: '💰 $500 Local Spender', check: s => s.total_spent >= 500 },
   { badge_type: 'spender_1000', badge_name: '🏆 $1,000 Local Spender', check: s => s.total_spent >= 1000 },
   { badge_type: 'spender_5000', badge_name: '👑 $5,000 Local Champion', check: s => s.total_spent >= 5000 },
 
   // Receipt milestones
   { badge_type: 'receipts_10', badge_name: '📜 10 Receipts', check: s => s.receipts_approved >= 10 },
+  { badge_type: 'receipt_master', badge_name: '📚 Receipt Master', check: s => s.receipts_approved >= 50 },
   { badge_type: 'receipts_50', badge_name: '📚 50 Receipts', check: s => s.receipts_approved >= 50 },
   { badge_type: 'receipts_100', badge_name: '🗂️ Receipt Veteran', check: s => s.receipts_approved >= 100 },
 
   // Review milestones
   { badge_type: 'first_review', badge_name: '⭐ First Review', check: s => s.reviews_count >= 1 },
+  { badge_type: 'reviewer', badge_name: '📝 Reviewer', check: s => s.reviews_count >= 5 },
   { badge_type: 'reviewer_5', badge_name: '📝 5 Reviews', check: s => s.reviews_count >= 5 },
   { badge_type: 'reviewer_25', badge_name: '✍️ Trusted Voice', check: s => s.reviews_count >= 25 },
 
   // Referral milestones
   { badge_type: 'first_referral', badge_name: '👥 First Referral', check: s => s.referrals_count >= 1 },
   { badge_type: 'referrer_5', badge_name: '🤝 5 Referrals', check: s => s.referrals_count >= 5 },
+  { badge_type: 'referral_king', badge_name: '👑 Referral King', check: s => s.referrals_count >= 10 },
   { badge_type: 'referrer_25', badge_name: '🌟 Super Connector', check: s => s.referrals_count >= 25 },
   { badge_type: 'referrer_100', badge_name: '🚀 Community Builder', check: s => s.referrals_count >= 100 },
 
   // Events
-  { badge_type: 'first_event', badge_name: '🎪 Event Goer', check: s => s.events_attended >= 1 },
+  { badge_type: 'event_goer', badge_name: '🎪 Event Goer', check: s => s.events_attended >= 3 },
+  { badge_type: 'first_event', badge_name: '🎪 First Event', check: s => s.events_attended >= 1 },
   { badge_type: 'events_10', badge_name: '📅 10 Events', check: s => s.events_attended >= 10 },
+
+  // Jobs
+  { badge_type: 'job_seeker', badge_name: '💼 Job Seeker', check: s => s.job_applications_count >= 1 },
+
+  // Community Legend
+  { badge_type: 'local_legend', badge_name: '🏛️ Local Legend', check: s => s.is_community_legend },
+
+  // Early Adopter (joined before 2025-01-01)
+  { badge_type: 'early_adopter', badge_name: '🌱 Early Adopter', check: s => s.account_created_at < '2025-01-01' },
 
   // Tier badges
   { badge_type: 'tier_silver', badge_name: '🥈 Silver Member', check: s => ['silver', 'gold', 'platinum', 'legend'].includes(s.tier) },
@@ -62,6 +79,7 @@ const BADGE_CRITERIA: BadgeCriteria[] = [
   { badge_type: 'tier_legend', badge_name: '👑 Community Legend', check: s => s.tier === 'legend' },
 
   // Streak badges
+  { badge_type: 'streak_3', badge_name: '🔥 3-Day Streak', check: s => s.streak_days >= 3 },
   { badge_type: 'streak_7', badge_name: '🔥 7-Day Streak', check: s => s.streak_days >= 7 },
   { badge_type: 'streak_30', badge_name: '⚡ 30-Day Streak', check: s => s.streak_days >= 30 },
   { badge_type: 'streak_100', badge_name: '💫 100-Day Streak', check: s => s.streak_days >= 100 },
