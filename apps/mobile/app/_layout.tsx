@@ -10,11 +10,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { Colors } from '../lib/theme';
+import { registerForPushNotifications, setupNotificationHandlers } from '../lib/firebase';
+import { identifyMobileUser, initMobileAnalytics } from '../lib/analytics';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
-  const { session, isInitialized } = useAuthStore();
+  const { session, isInitialized, user } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -27,6 +29,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace('/(tabs)/');
     }
   }, [session, isInitialized, segments]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    initMobileAnalytics();
+    setupNotificationHandlers();
+
+    if (user.id) {
+      registerForPushNotifications(user.id);
+      identifyMobileUser(user.id, { email: user.email });
+    }
+  }, [user]);
 
   return <>{children}</>;
 }

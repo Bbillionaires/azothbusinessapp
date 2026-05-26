@@ -18,6 +18,9 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  Globe,
+  List,
+  Users,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
@@ -37,6 +40,9 @@ const navItems: NavItem[] = [
   { label: 'Reviews', href: '/reviews', icon: Star },
   { label: 'Referrals', href: '/referrals', icon: Share2 },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { label: 'Social Links', href: '/social', icon: Globe },
+  { label: 'Services', href: '/services', icon: List },
+  { label: 'Followers', href: '/followers', icon: Users },
   { label: 'Verification', href: '/verification', icon: ShieldCheck },
   { label: 'Advertising', href: '/advertising', icon: Megaphone },
 ];

@@ -1,216 +1,434 @@
-import React, { useEffect, useState, useCallback } from 'react';
+// =============================================================================
+// Full Leaderboard Screen
+// =============================================================================
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Pressable,
-  RefreshControl, ActivityIndicator, SafeAreaView, Image,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
-import { useAuthStore } from '../../store/authStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../store/authStore';
+import { Avatar } from '../../components/ui/Avatar';
+import { Colors, Spacing, Radius, FontSize, FontWeight, Shadows, TierColors } from '../../lib/theme';
 
-type LeaderboardType = 'spending' | 'referrals' | 'reviews' | 'impact';
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-type Entry = {
-  rank: number;
+type LeaderboardTab = 'spending' | 'referrals' | 'reviews' | 'impact';
+
+interface LeaderboardEntry {
+  id: string;
   user_id: string;
-  score: number;
-  leaderboard_type: LeaderboardType;
-  profiles: { display_name: string | null; avatar_url: string | null; legend_tier: string | null } | null;
-};
-
-const TABS: { key: LeaderboardType; label: string }[] = [
-  { key: 'spending', label: 'Spending' },
-  { key: 'referrals', label: 'Referrals' },
-  { key: 'reviews', label: 'Reviews' },
-  { key: 'impact', label: 'Impact' },
-];
-
-const MEDAL = ['🥇', '🥈', '🥉'];
-
-const TIER_COLORS: Record<string, string> = {
-  hall_of_legends: '#7C3AED',
-  legend: '#7C3AED',
-  platinum: '#64748B',
-  gold: '#D4AF37',
-  silver: '#94A3B8',
-  bronze: '#92400E',
-};
-
-function maskName(name: string | null): string {
-  if (!name) return 'Anonymous';
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+  rank: number;
+  score: number | null;
+  period_type: string;
+  leaderboard_type: string;
+  profiles?: {
+    display_name: string | null;
+    avatar_url: string | null;
+    legend_tier: string | null;
+  };
 }
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const TABS: { key: LeaderboardTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'spending',  label: 'Spending',  icon: 'cash-outline' },
+  { key: 'referrals', label: 'Referrals', icon: 'people-outline' },
+  { key: 'reviews',   label: 'Reviews',   icon: 'star-outline' },
+  { key: 'impact',    label: 'Impact',    icon: 'trending-up-outline' },
+];
+
+const RANK_MEDALS: Record<number, { emoji: string; bg: string; border: string }> = {
+  1: { emoji: '🥇', bg: '#FFFBEB', border: '#D4AF37' },
+  2: { emoji: '🥈', bg: '#F5F5F5', border: '#A0AEC0' },
+  3: { emoji: '🥉', bg: '#FDF0E8', border: '#CD7F32' },
+};
+
+const SCORE_LABELS: Record<LeaderboardTab, string> = {
+  spending:  'pts',
+  referrals: 'refs',
+  reviews:   'reviews',
+  impact:    'impact',
+};
+
+function formatScore(score: number | null, tab: LeaderboardTab): string {
+  if (score == null) return '—';
+  if (score >= 1_000_000) return `${(score / 1_000_000).toFixed(1)}M`;
+  if (score >= 1_000) return `${(score / 1_000).toFixed(1)}K`;
+  return score.toLocaleString();
+}
+
+function maskName(displayName: string | null | undefined): string {
+  if (!displayName) return 'Anonymous';
+  const parts = displayName.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}
+
+// ---------------------------------------------------------------------------
+// Row component
+// ---------------------------------------------------------------------------
+
+interface EntryRowProps {
+  entry: LeaderboardEntry;
+  activeTab: LeaderboardTab;
+  isCurrentUser: boolean;
+}
+
+function EntryRow({ entry, activeTab, isCurrentUser }: EntryRowProps) {
+  const medal = RANK_MEDALS[entry.rank];
+  const tier = entry.profiles?.legend_tier ?? 'bronze';
+  const tierInfo = TierColors[tier] ?? TierColors.bronze;
+  const name = maskName(entry.profiles?.display_name);
+
+  if (medal) {
+    return (
+      <View style={[styles.medalRow, { backgroundColor: medal.bg, borderColor: medal.border }]}>
+        <Text style={styles.medalEmoji}>{medal.emoji}</Text>
+        <Avatar
+          uri={entry.profiles?.avatar_url}
+          name={name}
+          size={40}
+          borderColor={medal.border}
+          borderWidth={2}
+        />
+        <View style={styles.entryInfo}>
+          <Text style={styles.entryName} numberOfLines={1}>{name}</Text>
+          <View style={[styles.tierPill, { backgroundColor: tierInfo.bg }]}>
+            <Text style={[styles.tierPillText, { color: tierInfo.color }]}>
+              {tierInfo.emoji} {tierInfo.label}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.scoreWrap}>
+          <Text style={styles.scoreValue}>{formatScore(entry.score, activeTab)}</Text>
+          <Text style={styles.scoreLabel}>{SCORE_LABELS[activeTab]}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.entryRow, isCurrentUser && styles.entryRowHighlight]}>
+      <Text style={styles.rankNumber}>#{entry.rank}</Text>
+      <Avatar uri={entry.profiles?.avatar_url} name={name} size={36} />
+      <View style={styles.entryInfo}>
+        <Text style={[styles.entryName, isCurrentUser && styles.entryNameHighlight]} numberOfLines={1}>
+          {name}{isCurrentUser ? ' (You)' : ''}
+        </Text>
+        <Text style={styles.tierLabel}>{tierInfo.emoji} {tierInfo.label}</Text>
+      </View>
+      <View style={styles.scoreWrap}>
+        <Text style={[styles.scoreValue, isCurrentUser && styles.scoreValueHighlight]}>
+          {formatScore(entry.score, activeTab)}
+        </Text>
+        <Text style={styles.scoreLabel}>{SCORE_LABELS[activeTab]}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+
 export default function LeaderboardScreen() {
+  const router = useRouter();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<LeaderboardType>('spending');
-  const [data, setData] = useState<Entry[]>([]);
-  const [myRank, setMyRank] = useState<Entry | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [activeTab, setActiveTab] = useState<LeaderboardTab>('spending');
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const { data: entries } = await supabase
-      .from('leaderboard_entries')
-      .select('rank, user_id, score, leaderboard_type, profiles(display_name, avatar_url, legend_tier)')
-      .eq('period_type', 'monthly')
-      .eq('leaderboard_type', activeTab)
-      .order('rank', { ascending: true })
-      .limit(50);
+  const fetchLeaderboard = useCallback(async (tab: LeaderboardTab) => {
+    try {
+      const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .select('*, profiles(display_name, avatar_url, legend_tier)')
+        .eq('period_type', 'monthly')
+        .eq('leaderboard_type', tab)
+        .order('rank', { ascending: true })
+        .limit(50);
 
-    if (entries) {
-      setData(entries as Entry[]);
-      const mine = entries.find(e => e.user_id === user?.id) as Entry | undefined;
-      setMyRank(mine ?? null);
+      if (!error && data) {
+        setEntries(data as LeaderboardEntry[]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch leaderboard:', err);
     }
-    setLoading(false);
-  }, [activeTab, user?.id]);
+  }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    setIsLoading(true);
+    fetchLeaderboard(activeTab).finally(() => setIsLoading(false));
+  }, [activeTab, fetchLeaderboard]);
 
-  const onRefresh = async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
+    await fetchLeaderboard(activeTab);
     setRefreshing(false);
   };
 
+  const currentUserEntry = user?.id ? entries.find((e) => e.user_id === user.id) : undefined;
+
+  const renderEntry = ({ item }: { item: LeaderboardEntry }) => (
+    <EntryRow
+      entry={item}
+      activeTab={activeTab}
+      isCurrentUser={item.user_id === user?.id}
+    />
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Leaderboard</Text>
-        <Text style={styles.subtitle}>Monthly Rankings</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={22} color={Colors.textInverse} />
+        </TouchableOpacity>
+        <View style={styles.headerTitle}>
+          <Ionicons name="trophy" size={22} color={Colors.gold} />
+          <Text style={styles.headerText}>Leaderboard</Text>
+        </View>
+        <View style={{ width: 36 }} />
       </View>
 
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContainer}>
-        {TABS.map(tab => (
-          <Pressable
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        {TABS.map((tab) => (
+          <TouchableOpacity
             key={tab.key}
-            onPress={() => setActiveTab(tab.key)}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-          </Pressable>
+            <Ionicons
+              name={tab.icon}
+              size={16}
+              color={activeTab === tab.key ? Colors.primary : Colors.textTertiary}
+            />
+            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1B4332" />
+      {/* Period label */}
+      <View style={styles.periodRow}>
+        <Ionicons name="calendar-outline" size={14} color={Colors.textTertiary} />
+        <Text style={styles.periodText}>Monthly Rankings · May 2026</Text>
+      </View>
+
+      {/* List */}
+      {isLoading ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading rankings...</Text>
         </View>
       ) : (
-        <ScrollView
+        <FlashList
+          data={entries}
+          estimatedItemSize={64}
+          keyExtractor={(item) => item.id}
+          renderItem={renderEntry}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B4332" />}
-        >
-          {/* Top 3 podium */}
-          {data.length >= 3 && (
-            <View style={styles.podium}>
-              {[data[1], data[0], data[2]].map((entry, podiumIndex) => {
-                if (!entry) return null;
-                const rankOrder = [2, 1, 3][podiumIndex];
-                const heights = [80, 100, 70];
-                const initials = maskName(entry.profiles?.display_name)[0];
-                return (
-                  <View key={entry.user_id} style={[styles.podiumItem, { marginTop: podiumIndex === 1 ? 0 : 20 }]}>
-                    <View style={[styles.podiumAvatar, { borderColor: podiumIndex === 1 ? '#D4AF37' : '#E5E7EB' }]}>
-                      {entry.profiles?.avatar_url ? (
-                        <Image source={{ uri: entry.profiles.avatar_url }} style={styles.podiumAvatarImage} />
-                      ) : (
-                        <Text style={styles.podiumAvatarText}>{initials}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.podiumMedal}>{MEDAL[rankOrder - 1]}</Text>
-                    <Text style={styles.podiumName} numberOfLines={1}>{maskName(entry.profiles?.display_name)}</Text>
-                    <Text style={styles.podiumScore}>{entry.score.toLocaleString()}</Text>
-                    <View style={[styles.podiumBar, { height: heights[podiumIndex], backgroundColor: podiumIndex === 1 ? '#1B4332' : podiumIndex === 0 ? '#94A3B8' : '#CD7F32' }]}>
-                      <Text style={styles.podiumRank}>#{rankOrder}</Text>
-                    </View>
-                  </View>
-                );
-              })}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="trophy-outline" size={48} color={Colors.textTertiary} />
+              <Text style={styles.emptyTitle}>No data yet</Text>
+              <Text style={styles.emptyText}>
+                Rankings for this category will appear once enough activity has been recorded.
+              </Text>
             </View>
-          )}
-
-          {/* Full list */}
-          <View style={styles.list}>
-            {data.map((entry, index) => {
-              const isMe = entry.user_id === user?.id;
-              const tierColor = TIER_COLORS[entry.profiles?.legend_tier ?? ''] ?? '#888';
-              return (
-                <View key={entry.user_id} style={[styles.row, isMe && styles.rowMe]}>
-                  <Text style={styles.rowRank}>
-                    {index < 3 ? MEDAL[index] : `#${entry.rank}`}
-                  </Text>
-                  <View style={[styles.rowAvatar, { borderColor: tierColor }]}>
-                    {entry.profiles?.avatar_url ? (
-                      <Image source={{ uri: entry.profiles.avatar_url }} style={styles.rowAvatarImage} />
-                    ) : (
-                      <Text style={styles.rowAvatarText}>{maskName(entry.profiles?.display_name)[0]}</Text>
-                    )}
-                  </View>
-                  <Text style={[styles.rowName, isMe && styles.rowNameMe]} numberOfLines={1}>
-                    {isMe ? 'You' : maskName(entry.profiles?.display_name)}
-                  </Text>
-                  <Text style={styles.rowScore}>{entry.score.toLocaleString()}</Text>
+          }
+          ListFooterComponent={
+            /* Current user's position pinned at bottom if not in top list */
+            currentUserEntry && entries.indexOf(currentUserEntry) < 0 ? (
+              <View style={styles.userFooter}>
+                <View style={styles.userFooterDivider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>Your Position</Text>
+                  <View style={styles.dividerLine} />
                 </View>
-              );
-            })}
-
-            {data.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No data yet for this period.</Text>
+                <EntryRow
+                  entry={currentUserEntry}
+                  activeTab={activeTab}
+                  isCurrentUser
+                />
               </View>
-            )}
-          </View>
-
-          {/* My rank footer if not in top 50 */}
-          {user && !myRank && (
-            <View style={styles.myRankFooter}>
-              <Text style={styles.myRankText}>You are not ranked yet this month. Keep shopping local!</Text>
-            </View>
-          )}
-        </ScrollView>
+            ) : null
+          }
+        />
       )}
     </SafeAreaView>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F6F0' },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: '800', color: '#1A1A1A' },
-  subtitle: { fontSize: 13, color: '#888', marginTop: 2 },
-  tabScroll: { maxHeight: 48 },
-  tabContainer: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingVertical: 8 },
-  tab: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' },
-  tabActive: { backgroundColor: '#1B4332', borderColor: '#1B4332' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#666' },
-  tabTextActive: { color: '#fff' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
-  podium: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
-  podiumItem: { flex: 1, alignItems: 'center' },
-  podiumAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E6F0EC', justifyContent: 'center', alignItems: 'center', borderWidth: 2, marginBottom: 4 },
-  podiumAvatarImage: { width: '100%', height: '100%', borderRadius: 26 },
-  podiumAvatarText: { fontSize: 20, fontWeight: '700', color: '#1B4332' },
-  podiumMedal: { fontSize: 18 },
-  podiumName: { fontSize: 11, fontWeight: '600', color: '#1A1A1A', marginBottom: 2, maxWidth: 80, textAlign: 'center' },
-  podiumScore: { fontSize: 11, color: '#888', marginBottom: 4 },
-  podiumBar: { width: '80%', borderTopLeftRadius: 4, borderTopRightRadius: 4, justifyContent: 'flex-start', paddingTop: 8, alignItems: 'center' },
-  podiumRank: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#fff', borderRadius: 12, marginBottom: 6, borderWidth: 1, borderColor: '#F3F4F6' },
-  rowMe: { borderColor: '#1B4332', backgroundColor: '#F0FDF4' },
-  rowRank: { width: 32, fontSize: 15, fontWeight: '700', color: '#555' },
-  rowAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E6F0EC', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, marginRight: 10 },
-  rowAvatarImage: { width: 36, height: 36, borderRadius: 18 },
-  rowAvatarText: { fontSize: 14, fontWeight: '700', color: '#1B4332' },
-  rowName: { flex: 1, fontSize: 14, fontWeight: '500', color: '#333' },
-  rowNameMe: { fontWeight: '700', color: '#1B4332' },
-  rowScore: { fontSize: 14, fontWeight: '700', color: '#1B4332' },
-  emptyState: { paddingVertical: 40, alignItems: 'center' },
-  emptyText: { color: '#888', fontSize: 14 },
-  myRankFooter: { marginHorizontal: 16, marginBottom: 24, padding: 16, backgroundColor: '#FFF8E1', borderRadius: 12, borderWidth: 1, borderColor: '#FDE68A' },
-  myRankText: { fontSize: 13, color: '#92400E', textAlign: 'center' },
+  safe: { flex: 1, backgroundColor: Colors.background },
+
+  // Header
+  header: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  headerText: { fontSize: FontSize.xl, fontWeight: FontWeight.extrabold, color: Colors.textInverse },
+
+  // Tab bar
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    gap: 3,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: { borderBottomColor: Colors.primary },
+  tabText: { fontSize: FontSize.xxs, fontWeight: FontWeight.semibold, color: Colors.textTertiary },
+  tabTextActive: { color: Colors.primary },
+
+  // Period
+  periodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryBg,
+  },
+  periodText: { fontSize: FontSize.xs, color: Colors.textTertiary },
+
+  // List
+  listContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.huge,
+  },
+
+  // Medal row (top 3)
+  medalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.xl,
+    borderWidth: 1.5,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+  },
+  medalEmoji: { fontSize: 24, width: 28, textAlign: 'center' },
+
+  // Regular entry row
+  entryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    gap: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  entryRowHighlight: {
+    backgroundColor: Colors.primaryBg,
+    borderRadius: Radius.md,
+    borderBottomWidth: 0,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  rankNumber: {
+    width: 32,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+  },
+  entryInfo: { flex: 1, gap: 2 },
+  entryName: { fontSize: FontSize.base, fontWeight: FontWeight.semibold, color: Colors.textPrimary },
+  entryNameHighlight: { color: Colors.primary },
+  tierLabel: { fontSize: FontSize.xxs, color: Colors.textTertiary },
+  tierPill: {
+    alignSelf: 'flex-start',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+  tierPillText: { fontSize: FontSize.xxs, fontWeight: FontWeight.semibold },
+  scoreWrap: { alignItems: 'flex-end', gap: 1 },
+  scoreValue: { fontSize: FontSize.base, fontWeight: FontWeight.extrabold, color: Colors.textPrimary },
+  scoreValueHighlight: { color: Colors.primary },
+  scoreLabel: { fontSize: FontSize.xxs, color: Colors.textTertiary },
+
+  // States
+  loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
+  loadingText: { fontSize: FontSize.base, color: Colors.textSecondary },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.massive,
+    paddingHorizontal: Spacing.xxxl,
+    gap: Spacing.md,
+  },
+  emptyTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  emptyText: { fontSize: FontSize.base, color: Colors.textTertiary, textAlign: 'center', lineHeight: 22 },
+
+  // User footer
+  userFooter: {
+    paddingTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  userFooterDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  dividerText: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: FontWeight.semibold },
 });
