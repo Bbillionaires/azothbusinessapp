@@ -1,104 +1,209 @@
 // =============================================================================
-// useRewards — points balance, catalog, redemption history
+// useRewards — reward catalog, points history, redemptions
 // =============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from './useAuth';
-import type {
-  RewardCatalogWithBusiness,
-  RedemptionWithReward,
-  PointsTransaction,
-} from '../../../packages/shared/src/types/rewards';
+import { useAuthStore } from '../store/authStore';
 
-interface UseRewardsResult {
-  catalog: RewardCatalogWithBusiness[];
-  redemptions: RedemptionWithReward[];
-  transactions: PointsTransaction[];
-  isLoading: boolean;
-  error: string | null;
-  redeemReward: (rewardId: string) => Promise<{ error: string | null }>;
-  refetch: () => void;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface RewardCatalogItem {
+  id: string;
+  business_id: string | null;
+  name: string;
+  description: string | null;
+  reward_type: string;
+  points_cost: number;
+  quantity_available: number | null;
+  quantity_redeemed: number;
+  is_active: boolean;
+  expires_at: string | null;
+  image_url: string | null;
+  created_at: string;
+  businesses?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  } | null;
 }
 
-export function useRewards(): UseRewardsResult {
-  const { user, profile } = useAuth();
-  const [catalog, setCatalog] = useState<RewardCatalogWithBusiness[]>([]);
-  const [redemptions, setRedemptions] = useState<RedemptionWithReward[]>([]);
-  const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export interface PointsTransaction {
+  id: string;
+  user_id: string;
+  points: number;
+  transaction_type: string;
+  description: string | null;
+  receipt_id: string | null;
+  reference_id: string | null;
+  created_at: string;
+}
 
-  const fetchRewards = useCallback(async () => {
-    if (!user) return;
-    setIsLoading(true);
+export interface RewardRedemption {
+  id: string;
+  user_id: string;
+  reward_id: string;
+  points_spent: number;
+  status: 'pending' | 'fulfilled' | 'cancelled';
+  redeemed_at: string;
+  created_at: string;
+  reward_catalog?: {
+    name: string;
+    points_cost: number;
+    reward_type: string;
+  } | null;
+}
+
+// ---------------------------------------------------------------------------
+// useRewards — active reward catalog
+// ---------------------------------------------------------------------------
+
+export function useRewards() {
+  const [data, setData]       = useState<RewardCatalogItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const fetchCatalog = useCallback(async () => {
+    setLoading(true);
     setError(null);
-
     try {
-      const [catalogRes, redemptionsRes, txRes] = await Promise.all([
-        supabase
-          .from('reward_catalog')
-          .select('*, businesses(id, name, logo_url)')
-          .eq('is_active', true)
-          .order('points_cost', { ascending: true }),
-        supabase
-          .from('reward_redemptions')
-          .select('*, reward_catalog(name, points_cost, reward_type)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20),
-        supabase
-          .from('points_transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50),
-      ]);
+      const { data: rows, error: err } = await supabase
+        .from('reward_catalog')
+        .select('*, businesses(id, name, logo_url)')
+        .eq('is_active', true)
+        .order('points_cost', { ascending: true });
 
-      if (catalogRes.error) throw catalogRes.error;
-      if (redemptionsRes.error) throw redemptionsRes.error;
-      if (txRes.error) throw txRes.error;
-
-      setCatalog((catalogRes.data ?? []) as unknown as RewardCatalogWithBusiness[]);
-      setRedemptions((redemptionsRes.data ?? []) as unknown as RedemptionWithReward[]);
-      setTransactions((txRes.data ?? []) as unknown as PointsTransaction[]);
+      if (err) throw err;
+      setData((rows ?? []) as unknown as RewardCatalogItem[]);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to load rewards.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCatalog();
+  }, [fetchCatalog]);
+
+  return { data, loading, error, refetch: fetchCatalog };
+}
+
+// ---------------------------------------------------------------------------
+// usePointsHistory — paginated points_transactions for current user
+// ---------------------------------------------------------------------------
+
+export function usePointsHistory(limit = 20) {
+  const user = useAuthStore((s) => s.user);
+
+  const [data, setData]       = useState<PointsTransaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const fetchHistory = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: rows, error: err } = await supabase
+        .from('points_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (err) throw err;
+      setData((rows ?? []) as unknown as PointsTransaction[]);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to load points history.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, limit]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  return { data, loading, error, refetch: fetchHistory };
+}
+
+// ---------------------------------------------------------------------------
+// useRedemptions — reward_redemptions joined with reward_catalog
+// ---------------------------------------------------------------------------
+
+export function useRedemptions() {
+  const user = useAuthStore((s) => s.user);
+
+  const [data, setData]       = useState<RewardRedemption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const fetchRedemptions = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: rows, error: err } = await supabase
+        .from('reward_redemptions')
+        .select('*, reward_catalog(name, points_cost, reward_type)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (err) throw err;
+      setData((rows ?? []) as unknown as RewardRedemption[]);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to load redemptions.');
+    } finally {
+      setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchRewards();
-  }, [fetchRewards]);
+    fetchRedemptions();
+  }, [fetchRedemptions]);
 
-  const redeemReward = useCallback(
-    async (rewardId: string) => {
-      if (!user || !profile) return { error: 'Not authenticated' };
+  return { data, loading, error, refetch: fetchRedemptions };
+}
 
-      const reward = catalog.find((r) => r.id === rewardId);
-      if (!reward) return { error: 'Reward not found' };
-      if (profile.points_balance < reward.points_cost) {
-        return { error: 'Insufficient points' };
-      }
+// ---------------------------------------------------------------------------
+// useRedeemReward — call redeem_reward RPC
+// ---------------------------------------------------------------------------
+
+export function useRedeemReward() {
+  const user = useAuthStore((s) => s.user);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const redeem = useCallback(
+    async (rewardId: string): Promise<{ data: unknown; error: string | null }> => {
+      if (!user) return { data: null, error: 'Not authenticated' };
+
+      setLoading(true);
+      setError(null);
 
       try {
-        const { error: err } = await supabase.from('reward_redemptions').insert({
-          user_id: user.id,
-          reward_id: rewardId,
-          points_spent: reward.points_cost,
-          status: 'pending',
+        const { data, error: rpcError } = await supabase.rpc('redeem_reward', {
+          p_reward_id: rewardId,
+          p_user_id:   user.id,
         });
-        if (err) throw err;
-        await fetchRewards();
-        return { error: null };
+
+        if (rpcError) throw rpcError;
+        return { data, error: null };
       } catch (err: any) {
-        return { error: err?.message ?? 'Redemption failed.' };
+        const msg = err?.message ?? 'Redemption failed.';
+        setError(msg);
+        return { data: null, error: msg };
+      } finally {
+        setLoading(false);
       }
     },
-    [user, profile, catalog, fetchRewards]
+    [user]
   );
 
-  return { catalog, redemptions, transactions, isLoading, error, redeemReward, refetch: fetchRewards };
+  return { redeem, loading, error };
 }

@@ -1,41 +1,61 @@
 // =============================================================================
-// useReceipts — receipt submission and history
+// useReceipts — receipt history and upload via process-receipt edge function
 // =============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
+import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabase';
-import { useAuth } from './useAuth';
-import type { ReceiptWithBusiness } from '../../../packages/shared/src/types/receipt';
+import { useAuthStore } from '../store/authStore';
 
-interface UploadReceiptPayload {
-  imageUri: string;
-  businessId?: string;
-  totalAmount?: number;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ReceiptRow {
+  id: string;
+  user_id: string;
+  business_id: string | null;
+  image_url: string | null;
+  total_amount: number | null;
+  tax_amount: number | null;
+  transaction_date: string | null;
+  transaction_number: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'flagged';
+  fraud_score: number | null;
+  points_awarded: number | null;
+  created_at: string;
+  updated_at: string;
+  businesses?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+    category: string | null;
+  } | null;
 }
 
-interface UseReceiptsResult {
-  receipts: ReceiptWithBusiness[];
-  isLoading: boolean;
-  isUploading: boolean;
-  uploadProgress: number;
+export interface ReceiptUploadResult {
+  receipt: ReceiptRow | null;
   error: string | null;
-  uploadReceipt: (payload: UploadReceiptPayload) => Promise<{ error: string | null }>;
-  refetch: () => void;
 }
 
-export function useReceipts(): UseReceiptsResult {
-  const { user } = useAuth();
-  const [receipts, setReceipts] = useState<ReceiptWithBusiness[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+// ---------------------------------------------------------------------------
+// useReceipts — fetch receipts for current user
+// ---------------------------------------------------------------------------
+
+export function useReceipts() {
+  const user = useAuthStore((s) => s.user);
+
+  const [data, setData]       = useState<ReceiptRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
   const fetchReceipts = useCallback(async () => {
     if (!user) return;
-    setIsLoading(true);
+    setLoading(true);
+    setError(null);
+
     try {
-      const { data, error: err } = await supabase
+      const { data: rows, error: err } = await supabase
         .from('receipts')
         .select('*, businesses(id, name, logo_url, category)')
         .eq('user_id', user.id)
@@ -43,11 +63,11 @@ export function useReceipts(): UseReceiptsResult {
         .limit(50);
 
       if (err) throw err;
-      setReceipts((data ?? []) as unknown as ReceiptWithBusiness[]);
+      setData((rows ?? []) as unknown as ReceiptRow[]);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to load receipts.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [user]);
 
@@ -55,65 +75,101 @@ export function useReceipts(): UseReceiptsResult {
     fetchReceipts();
   }, [fetchReceipts]);
 
-  const uploadReceipt = useCallback(
-    async ({ imageUri, businessId, totalAmount }: UploadReceiptPayload) => {
-      if (!user) return { error: 'Not authenticated' };
-      setIsUploading(true);
-      setUploadProgress(0);
+  return { data, loading, error, refetch: fetchReceipts };
+}
+
+// ---------------------------------------------------------------------------
+// useReceiptUpload — convert image to base64 and POST to process-receipt
+// ---------------------------------------------------------------------------
+
+export function useReceiptUpload() {
+  const user = useAuthStore((s) => s.user);
+  const session = useAuthStore((s) => s.session);
+
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress]   = useState(0);
+  const [error, setError]         = useState<string | null>(null);
+
+  const upload = useCallback(
+    async (imageUri: string): Promise<ReceiptUploadResult> => {
+      if (!user || !session) return { receipt: null, error: 'Not authenticated' };
+
+      setUploading(true);
+      setProgress(0);
       setError(null);
 
       try {
-        // 1. Upload image to Supabase Storage
-        setUploadProgress(20);
-        const fileName = `${user.id}/${Date.now()}.jpg`;
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
+        // ── Step 1: attempt expo-image-picker if no URI was passed ──────────
+        // If the caller passed a URI directly we use it as-is.
+        // (expo-image-picker is optional; callers can pass the URI themselves.)
+        let resolvedUri = imageUri;
 
-        const { error: uploadError } = await supabase.storage
-          .from('receipts')
-          .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+        // ── Step 2: convert image to base64 ─────────────────────────────────
+        setProgress(20);
+        let base64: string;
 
-        if (uploadError) throw uploadError;
-        setUploadProgress(60);
+        try {
+          // expo-file-system is available in all Expo managed workflows
+          base64 = await FileSystem.readAsStringAsync(resolvedUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+        } catch {
+          // Fallback: fetch the URI and convert via FileReader
+          const response = await fetch(resolvedUri);
+          const blob = await response.blob();
+          base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1] ?? result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
 
-        // 2. Get public URL
-        const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
-        setUploadProgress(80);
+        setProgress(50);
 
-        // 3. Create receipt record
-        const { error: insertError } = await supabase.from('receipts').insert({
-          user_id: user.id,
-          business_id: businessId ?? null,
-          image_url: urlData.publicUrl,
-          total_amount: totalAmount ?? null,
-          status: 'pending',
-        });
+        // ── Step 3: determine MIME type from URI extension ──────────────────
+        const ext = resolvedUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const mimeMap: Record<string, string> = {
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          png: 'image/png',
+          webp: 'image/webp',
+          heic: 'image/heic',
+        };
+        const mimeType = mimeMap[ext] ?? 'image/jpeg';
 
-        if (insertError) throw insertError;
-        setUploadProgress(100);
+        setProgress(60);
 
-        // Refresh list
-        await fetchReceipts();
-        return { error: null };
+        // ── Step 4: POST to process-receipt edge function ───────────────────
+        const { data: fnData, error: fnError } = await supabase.functions.invoke(
+          'process-receipt',
+          {
+            body: {
+              image_base64: base64,
+              mime_type: mimeType,
+              user_id: user.id,
+            },
+          }
+        );
+
+        if (fnError) throw fnError;
+
+        setProgress(100);
+        return { receipt: fnData as ReceiptRow, error: null };
       } catch (err: any) {
         const msg = err?.message ?? 'Failed to upload receipt.';
         setError(msg);
-        return { error: msg };
+        return { receipt: null, error: msg };
       } finally {
-        setIsUploading(false);
-        setUploadProgress(0);
+        setUploading(false);
+        setProgress(0);
       }
     },
-    [user, fetchReceipts]
+    [user, session]
   );
 
-  return {
-    receipts,
-    isLoading,
-    isUploading,
-    uploadProgress,
-    error,
-    uploadReceipt,
-    refetch: fetchReceipts,
-  };
+  return { upload, uploading, progress, error };
 }

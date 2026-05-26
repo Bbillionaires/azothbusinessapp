@@ -1,32 +1,89 @@
 // =============================================================================
-// useLocation — convenience hook wrapping the location store
+// useLocation — expo-location with permission request and reverse geocoding
 // =============================================================================
 
-import { useLocationStore } from '../store/locationStore';
+import { useState, useEffect, useCallback } from 'react';
+import * as Location from 'expo-location';
 
-export function useLocation() {
-  const coordinates = useLocationStore((s) => s.coordinates);
-  const city = useLocationStore((s) => s.city);
-  const state = useLocationStore((s) => s.state);
-  const permissionStatus = useLocationStore((s) => s.permissionStatus);
-  const isLoading = useLocationStore((s) => s.isLoading);
-  const error = useLocationStore((s) => s.error);
-  const requestPermission = useLocationStore((s) => s.requestPermission);
-  const getCurrentLocation = useLocationStore((s) => s.getCurrentLocation);
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-  const hasPermission = permissionStatus === 'granted';
-  const locationLabel = city && state ? `${city}, ${state}` : city ?? state ?? 'Your Area';
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+export interface UseLocationResult {
+  location: LatLng | null;
+  city: string | null;
+  loading: boolean;
+  error: string | null;
+  refreshLocation: () => Promise<void>;
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
+export function useLocation(): UseLocationResult {
+  const [location, setLocation] = useState<LatLng | null>(null);
+  const [city, setCity]         = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  const resolveLocation = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Request foreground permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== Location.PermissionStatus.GRANTED) {
+        setError('Location permission was denied.');
+        return;
+      }
+
+      // 2. Get current position
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const coords: LatLng = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      setLocation(coords);
+
+      // 3. Reverse geocode for city name
+      try {
+        const [place] = await Location.reverseGeocodeAsync({
+          latitude:  coords.lat,
+          longitude: coords.lng,
+        });
+        if (place) {
+          setCity(place.city ?? place.subregion ?? place.region ?? null);
+        }
+      } catch {
+        // Non-fatal — location is still valid without city name
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Unable to determine your location.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Request permission and fetch location on mount
+  useEffect(() => {
+    resolveLocation();
+  }, [resolveLocation]);
 
   return {
-    coordinates,
+    location,
     city,
-    state,
-    locationLabel,
-    permissionStatus,
-    hasPermission,
-    isLoading,
+    loading,
     error,
-    requestPermission,
-    getCurrentLocation,
+    refreshLocation: resolveLocation,
   };
 }
