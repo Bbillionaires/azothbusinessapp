@@ -6,7 +6,7 @@ type Review = {
   id: string; rating: number; title: string | null; body: string; tags: string[] | null;
   status: string; weighted_score: number; helpful_count: number;
   created_at: string; reviewer_id: string;
-  profiles?: { display_name: string | null; avatar_url: string | null; tier: string | null } | null;
+  profiles?: { full_name: string | null; avatar_url: string | null; tier: string | null } | null;
   review_responses?: Array<{ body: string; created_at: string }>;
 };
 
@@ -23,7 +23,7 @@ export function useBusinessReviews(businessId: string, limit = 20) {
     try {
       const { data: reviews, count, error: err } = await supabase
         .from('reviews')
-        .select('*, profiles(display_name, avatar_url, tier), review_responses(body, created_at)', { count: 'exact' })
+        .select('*, profiles(full_name, avatar_url, tier), review_responses(body, created_at)', { count: 'exact' })
         .eq('business_id', businessId)
         .eq('status', 'published')
         .order('weighted_score', { ascending: false })

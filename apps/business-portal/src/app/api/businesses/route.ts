@@ -111,17 +111,21 @@ export async function POST(req: NextRequest) {
     }
   )
 
+  const baseSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
   const { data, error } = await serviceSupabase
     .from('businesses')
     .insert({
       owner_id: user.id,
       name: name.trim(),
+      slug,
       description: description ?? null,
-      category: category ?? null,
-      address_street: address ?? null,
-      address_city: city ?? null,
-      address_state: state ?? null,
-      address_zip: zip ?? null,
+      category: category ?? 'other',
+      address: address ?? null,
+      city: city ?? null,
+      state: state ?? null,
+      zip: zip ?? null,
       phone: phone ?? null,
       website: website ?? null,
       hours: hours ?? {},

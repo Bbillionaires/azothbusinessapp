@@ -51,7 +51,7 @@ export default function ReceiptsPage() {
       setFetchLoading(true);
       let query = supabase
         .from('receipts')
-        .select('id, user_id, business_id, amount, merchant_name, receipt_date, submitted_at, status, fraud_score, fraud_flags, image_url, profiles!user_id(display_name, email)')
+        .select('id, user_id, business_id, amount, merchant_name, receipt_date, submitted_at, status, fraud_score, fraud_flags, image_url, profiles!user_id(full_name, email)')
         .order('submitted_at', { ascending: false })
         .limit(200);
 

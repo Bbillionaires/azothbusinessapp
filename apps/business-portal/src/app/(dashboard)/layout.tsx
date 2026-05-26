@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-20">
           <Sidebar
             businessName={business?.name}
-            verificationTier={business?.verification_tier ?? null}
+            verificationTier={business?.verification_level ?? null}
           />
         </aside>
 
@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
           businessName={business?.name}
-          verificationTier={business?.verification_tier ?? null}
+          verificationTier={business?.verification_level ?? null}
         />
 
         {/* Main content area */}

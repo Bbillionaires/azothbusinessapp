@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { HoursEditor, type DayHours } from './HoursEditor';
 import type { BusinessProfile } from '@/hooks/useBusiness';
+import { createClient } from '@/lib/supabase';
 import {
   Globe,
   Phone,
@@ -37,22 +38,26 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ];
 
+const SOCIAL_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok', 'youtube'] as const;
+
+type SocialPlatform = typeof SOCIAL_PLATFORMS[number];
+
 const schema = z.object({
   name: z.string().min(2, 'Business name is required'),
   description: z.string().max(1000).optional(),
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  address_street: z.string().optional(),
-  address_city: z.string().optional(),
-  address_state: z.string().optional(),
-  address_zip: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
   category: z.string().optional(),
   tags: z.string().optional(),
   family_name: z.string().optional(),
   year_founded: z.coerce.number().int().min(1800).max(new Date().getFullYear()).optional().or(z.literal('')),
-  referral_type: z.enum(['percentage', 'fixed', '']).optional(),
-  referral_value: z.coerce.number().min(0).optional().or(z.literal('')),
+  referral_percentage: z.coerce.number().min(0).max(100).optional().or(z.literal('')),
+  referral_fixed_amount: z.coerce.number().min(0).optional().or(z.literal('')),
   social_facebook: z.string().optional(),
   social_instagram: z.string().optional(),
   social_twitter: z.string().optional(),
@@ -65,7 +70,14 @@ type FormData = z.infer<typeof schema>;
 
 interface BusinessProfileFormProps {
   business: BusinessProfile | null;
-  onSubmit: (data: Partial<BusinessProfile>) => Promise<void>;
+  onSubmit: (data: Partial<BusinessProfile>) => Promise<unknown>;
+}
+
+function getSocialUrl(business: BusinessProfile | null, platform: SocialPlatform): string {
+  const record = business?.business_social?.find(
+    (s) => (s as Record<string, string>).platform === platform
+  );
+  return (record as Record<string, string> | undefined)?.url ?? '';
 }
 
 export function BusinessProfileForm({ business, onSubmit }: BusinessProfileFormProps) {
@@ -87,37 +99,66 @@ export function BusinessProfileForm({ business, onSubmit }: BusinessProfileFormP
       phone: business?.phone ?? '',
       email: business?.email ?? '',
       website: business?.website ?? '',
-      address_street: business?.address_street ?? '',
-      address_city: business?.address_city ?? '',
-      address_state: business?.address_state ?? '',
-      address_zip: business?.address_zip ?? '',
+      address: business?.address ?? '',
+      city: business?.city ?? '',
+      state: business?.state ?? '',
+      zip: business?.zip ?? '',
       category: business?.category ?? '',
       tags: business?.tags?.join(', ') ?? '',
       family_name: business?.family_name ?? '',
       year_founded: business?.year_founded ?? '',
-      referral_type: (business?.referral_type as 'percentage' | 'fixed' | '') ?? '',
-      referral_value: business?.referral_value ?? '',
-      social_facebook: business?.social_facebook ?? '',
-      social_instagram: business?.social_instagram ?? '',
-      social_twitter: business?.social_twitter ?? '',
-      social_linkedin: business?.social_linkedin ?? '',
-      social_tiktok: business?.social_tiktok ?? '',
-      social_youtube: business?.social_youtube ?? '',
+      referral_percentage: business?.referral_percentage ?? '',
+      referral_fixed_amount: business?.referral_fixed_amount ?? '',
+      social_facebook: getSocialUrl(business, 'facebook'),
+      social_instagram: getSocialUrl(business, 'instagram'),
+      social_twitter: getSocialUrl(business, 'twitter'),
+      social_linkedin: getSocialUrl(business, 'linkedin'),
+      social_tiktok: getSocialUrl(business, 'tiktok'),
+      social_youtube: getSocialUrl(business, 'youtube'),
     },
   });
 
   async function handleFormSubmit(data: FormData) {
+    if (!business?.id) return;
     setSaving(true);
     setSuccess(false);
     try {
+      const { social_facebook, social_instagram, social_twitter, social_linkedin, social_tiktok, social_youtube, ...rest } = data;
+
       await onSubmit({
-        ...data,
+        ...rest,
         tags: data.tags ? data.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
         hours,
         year_founded: data.year_founded ? Number(data.year_founded) : null,
-        referral_value: data.referral_value ? Number(data.referral_value) : null,
-        referral_type: (data.referral_type as 'percentage' | 'fixed' | null) || null,
+        referral_percentage: data.referral_percentage ? Number(data.referral_percentage) : null,
+        referral_fixed_amount: data.referral_fixed_amount ? Number(data.referral_fixed_amount) : null,
       });
+
+      // Update social links separately
+      const supabase = createClient();
+      const socialUpdates: Array<{ platform: string; url: string }> = [
+        { platform: 'facebook', url: social_facebook ?? '' },
+        { platform: 'instagram', url: social_instagram ?? '' },
+        { platform: 'twitter', url: social_twitter ?? '' },
+        { platform: 'linkedin', url: social_linkedin ?? '' },
+        { platform: 'tiktok', url: social_tiktok ?? '' },
+        { platform: 'youtube', url: social_youtube ?? '' },
+      ];
+
+      for (const { platform, url } of socialUpdates) {
+        if (url.trim()) {
+          await supabase.from('business_social').upsert(
+            { business_id: business.id, platform, url: url.trim() },
+            { onConflict: 'business_id,platform' }
+          );
+        } else {
+          await supabase.from('business_social')
+            .delete()
+            .eq('business_id', business.id)
+            .eq('platform', platform);
+        }
+      }
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } finally {
@@ -215,12 +256,12 @@ export function BusinessProfileForm({ business, onSubmit }: BusinessProfileFormP
             <Input
               label="Street Address"
               leftAddon={<MapPin className="h-4 w-4" />}
-              {...register('address_street')}
+              {...register('address')}
             />
           </div>
-          <Input label="City" {...register('address_city')} />
-          <Input label="State" {...register('address_state')} />
-          <Input label="ZIP / Postal Code" {...register('address_zip')} />
+          <Input label="City" {...register('city')} />
+          <Input label="State" {...register('state')} />
+          <Input label="ZIP / Postal Code" {...register('zip')} />
         </div>
       </section>
 
@@ -238,22 +279,21 @@ export function BusinessProfileForm({ business, onSubmit }: BusinessProfileFormP
           Referral Program
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select
-            label="Reward Type"
-            options={[
-              { value: 'percentage', label: 'Percentage (%)' },
-              { value: 'fixed', label: 'Fixed Amount ($)' },
-            ]}
-            placeholder="No referral program"
-            {...register('referral_type')}
+          <Input
+            label="Referral Percentage (%)"
+            type="number"
+            step="0.01"
+            placeholder="e.g. 5"
+            hint="Percentage of sale awarded to referrer"
+            {...register('referral_percentage')}
           />
           <Input
-            label="Reward Value"
+            label="Fixed Referral Amount ($)"
             type="number"
             step="0.01"
             placeholder="e.g. 10"
-            hint="Percentage or dollar amount"
-            {...register('referral_value')}
+            hint="Flat dollar amount per referral"
+            {...register('referral_fixed_amount')}
           />
         </div>
       </section>

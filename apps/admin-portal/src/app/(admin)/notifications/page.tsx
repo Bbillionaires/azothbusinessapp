@@ -47,7 +47,7 @@ interface DbNotification {
   data: Record<string, unknown> | null;
   read: boolean;
   created_at: string;
-  profiles: { display_name: string | null; email: string | null } | null;
+  profiles: { full_name: string | null; email: string | null } | null;
 }
 
 const TARGET_OPTIONS: Array<{ value: TargetType; label: string; icon: React.ElementType; hint: string }> = [
@@ -98,7 +98,7 @@ export default function NotificationsPage() {
       setHistoryLoading(true);
       const { data, error } = await supabase
         .from('notifications')
-        .select('*, profiles!user_id(display_name, email)')
+        .select('*, profiles!user_id(full_name, email)')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -109,7 +109,7 @@ export default function NotificationsPage() {
           body: n.body,
           target_type: (n.type as TargetType) ?? 'user',
           target_id: n.user_id,
-          target_label: n.profiles?.display_name ?? n.profiles?.email ?? n.user_id ?? 'Unknown',
+          target_label: n.profiles?.full_name ?? n.profiles?.email ?? n.user_id ?? 'Unknown',
           sent_at: n.created_at,
           status: 'success' as const,
           recipients: 1,

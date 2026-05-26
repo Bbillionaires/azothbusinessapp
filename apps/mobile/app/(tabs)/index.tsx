@@ -92,7 +92,7 @@ export default function HomeScreen() {
     const [lbResult, impactResult, eventsResult] = await Promise.all([
       supabase
         .from('leaderboard_entries')
-        .select('rank, score, user_id, profiles!user_id(display_name, tier)')
+        .select('rank, score, user_id, profiles!user_id(full_name, tier)')
         .eq('period', 'monthly')
         .eq('category', 'spending')
         .order('rank', { ascending: true })
@@ -116,7 +116,7 @@ export default function HomeScreen() {
       const entries = lbResult.data.map((e: any) => ({
         rank: e.rank,
         userId: e.user_id,
-        displayName: e.profiles?.display_name ?? 'User',
+        displayName: e.profiles?.full_name ?? 'User',
         totalPoints: e.score ?? 0,
         tier: e.profiles?.tier ?? 'bronze',
       }));

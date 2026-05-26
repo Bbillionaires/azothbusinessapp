@@ -20,7 +20,7 @@ interface ReferralEvent {
   cash_awarded: number;
   status: string;
   created_at: string;
-  referred: { display_name: string | null; email: string | null } | null;
+  referred: { full_name: string | null; email: string | null } | null;
 }
 
 interface MarketplaceListing {
@@ -71,7 +71,7 @@ export default function ReferralsPage() {
         supabase.from('referral_links').select('*').eq('user_id', user.id).maybeSingle(),
         supabase
           .from('referral_events')
-          .select('*, referred:referred_id(display_name, email)')
+          .select('*, referred:referred_id(full_name, email)')
           .eq('referrer_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -373,7 +373,7 @@ export default function ReferralsPage() {
                 {events.map(event => (
                   <tr key={event.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="py-3 font-medium text-gray-900">
-                      {event.referred?.display_name ?? event.referred?.email ?? 'Anonymous'}
+                      {event.referred?.full_name ?? event.referred?.email ?? 'Anonymous'}
                     </td>
                     <td className="py-3 text-gray-500">{new Date(event.created_at).toLocaleDateString()}</td>
                     <td className="py-3">

@@ -35,33 +35,8 @@ export default function ProfilePage() {
             Keep your information up-to-date so customers can find and trust you.
           </p>
         </div>
-        <BadgeDisplay tier={business?.verification_tier ?? null} size="md" />
+        <BadgeDisplay tier={business?.verification_level ?? null} size="md" />
       </div>
-
-      {/* Profile completeness bar */}
-      {business && (
-        <div className="mb-6 section-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Profile Completeness
-            </span>
-            <span className="text-sm font-bold text-brand-green-700">
-              {business.profile_completeness ?? 0}%
-            </span>
-          </div>
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-brand-green-600 rounded-full transition-all duration-500"
-              style={{ width: `${business.profile_completeness ?? 0}%` }}
-            />
-          </div>
-          {(business.profile_completeness ?? 0) < 100 && (
-            <p className="text-xs text-gray-500 mt-1.5">
-              Fill in all sections below to reach 100% and unlock more visibility.
-            </p>
-          )}
-        </div>
-      )}
 
       <div className="section-card">
         <BusinessProfileForm

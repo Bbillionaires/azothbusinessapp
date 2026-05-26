@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 
 export interface UpdateProfileParams {
-  display_name?: string;
+  full_name?: string;
   bio?: string;
   avatar_url?: string;
 }
@@ -26,7 +26,7 @@ export function useAuth() {
   const clearError   = useAuthStore((s) => s.clearError);
 
   /**
-   * Update display_name, bio, and/or avatar_url on the profiles table,
+   * Update full_name, bio, and/or avatar_url on the profiles table,
    * then refresh the local profile state.
    */
   const updateProfile = useCallback(

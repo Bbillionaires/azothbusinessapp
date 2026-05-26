@@ -3,79 +3,51 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 
-type Business = {
-  id: string; name: string; description: string | null; category: string;
-  address: string | null; city: string; state: string; zip: string | null;
-  phone: string | null; website: string | null; status: string;
-  verification_level: string | null; verified_at: string | null;
-  is_featured: boolean; hours: Record<string, unknown> | null;
-  owner_id: string; created_at: string;
-  business_social: Array<Record<string, string>> | null;
-  business_photos: Array<{ id: string; url: string; is_cover: boolean }> | null;
-  business_services: Array<{ id: string; name: string; price: number | null }> | null;
-};
-
-export function useBusiness() {
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data, error: err } = await supabase
-        .from('businesses')
-        .select('*, business_social(*), business_photos(*), business_services(*)')
-        .eq('owner_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-      if (err) throw err;
-      setBusiness(data as Business);
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to load business');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  return { business, loading, error, refresh: load };
-}
-
 export interface BusinessProfile {
   id: string;
   owner_id: string;
   name: string;
+  slug: string | null;
   description: string | null;
+  family_name: string | null;
+  year_founded: number | null;
+  logo_url: string | null;
+  cover_url: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
-  address_street: string | null;
-  address_city: string | null;
-  address_state: string | null;
-  address_zip: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  latitude: number | null;
+  longitude: number | null;
   category: string | null;
+  subcategory: string | null;
   tags: string[];
-  family_name: string | null;
-  year_founded: number | null;
-  referral_type: 'percentage' | 'fixed' | null;
-  referral_value: number | null;
-  social_facebook: string | null;
-  social_instagram: string | null;
-  social_twitter: string | null;
-  social_linkedin: string | null;
-  social_tiktok: string | null;
-  social_youtube: string | null;
-  hours: Record<string, { open: string; close: string; closed: boolean }>;
-  verification_tier: string | null;
-  profile_completeness: number;
+  hours: Record<string, { open: string; close: string; closed: boolean }> | null;
+  status: string;
+  is_local_owned: boolean;
+  is_community_owned: boolean;
+  is_veteran_owned: boolean;
+  is_nonprofit_owned: boolean;
+  is_woman_owned: boolean;
+  verification_level: string | null;
+  is_featured: boolean;
+  is_top_rated: boolean;
+  is_premium: boolean;
+  hiring_now: boolean;
+  has_free_today: boolean;
+  has_upcoming_event: boolean;
+  referral_percentage: number | null;
+  referral_fixed_amount: number | null;
+  total_reviews: number;
+  average_rating: number | null;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
+  business_social: Array<{ id: string; platform: string; url: string }> | null;
+  business_photos: Array<{ id: string; url: string; is_cover: boolean }> | null;
+  business_services: Array<{ id: string; name: string; price: number | null }> | null;
 }
 
 export function useBusiness() {
@@ -87,6 +59,7 @@ export function useBusiness() {
   const fetchBusiness = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setBusiness(null);
@@ -95,14 +68,11 @@ export function useBusiness() {
 
       const { data, error: fetchError } = await supabase
         .from('businesses')
-        .select('*')
+        .select('*, business_social(*), business_photos(*), business_services(*)')
         .eq('owner_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
-      }
-
+      if (fetchError) throw fetchError;
       setBusiness(data ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch business');
@@ -122,12 +92,13 @@ export function useBusiness() {
 
       const { data, error: updateError } = await supabase
         .from('businesses')
-        .upsert({ ...updates, owner_id: user.id, updated_at: new Date().toISOString() })
-        .select()
-        .single();
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('owner_id', user.id)
+        .select('*, business_social(*), business_photos(*), business_services(*)')
+        .maybeSingle();
 
       if (updateError) throw updateError;
-      setBusiness(data);
+      if (data) setBusiness(data);
       return data;
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to update business');

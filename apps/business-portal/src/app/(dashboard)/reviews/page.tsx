@@ -27,7 +27,7 @@ type Review = {
   helpful_count: number;
   created_at: string;
   reviewer_id: string;
-  profiles?: { display_name: string | null; tier: string | null } | null;
+  profiles?: { full_name: string | null; tier: string | null } | null;
   review_responses?: Array<{ id: string; body: string; created_at: string }>;
 };
 
@@ -72,7 +72,7 @@ export default function ReviewsPage() {
     async function load() {
       const { data } = await supabase
         .from('reviews')
-        .select('*, profiles(display_name, tier), review_responses(id, body, created_at)')
+        .select('*, profiles(full_name, tier), review_responses(id, body, created_at)')
         .eq('business_id', businessId)
         .eq('status', 'published')
         .order('weighted_score', { ascending: false });
@@ -220,7 +220,7 @@ export default function ReviewsPage() {
             const tier = review.profiles?.tier ?? 'bronze';
             const tierColor = TIER_COLORS[tier] ?? TIER_COLORS.bronze;
             const weight = TIER_WEIGHT[tier] ?? 1;
-            const reviewerName = review.profiles?.display_name ?? 'Anonymous';
+            const reviewerName = review.profiles?.full_name ?? 'Anonymous';
             const hasResponse = review.review_responses && review.review_responses.length > 0;
 
             return (

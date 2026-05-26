@@ -5,7 +5,7 @@ import { Plus, Tag, Pencil, Trash2, Eye, EyeOff, Loader2, Gift } from 'lucide-re
 import { createBrowserClient } from '@supabase/ssr';
 import { format } from 'date-fns';
 
-type OfferType = 'discount' | 'coupon' | 'freebie' | 'gift_card';
+type OfferType = 'discount' | 'bogo' | 'freebie' | 'event_special' | 'loyalty' | 'first_visit' | 'flash';
 
 interface BusinessOffer {
   id: string;
@@ -21,7 +21,7 @@ interface BusinessOffer {
   expires_at: string | null;
   is_active: boolean;
   points_bonus: number;
-  redemption_count: number;
+  current_redemptions: number;
   max_redemptions: number | null;
   created_at: string;
 }
@@ -48,10 +48,13 @@ const EMPTY_FORM: FormState = {
 };
 
 const OFFER_TYPE_LABELS: Record<OfferType, { label: string; color: string }> = {
-  discount:  { label: 'Discount',   color: 'bg-green-100 text-green-700 border-green-200' },
-  coupon:    { label: 'Coupon',     color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  freebie:   { label: 'Freebie',    color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  gift_card: { label: 'Gift Card',  color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  discount:     { label: 'Discount',     color: 'bg-green-100 text-green-700 border-green-200' },
+  bogo:         { label: 'BOGO',         color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  freebie:      { label: 'Freebie',      color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  event_special:{ label: 'Event Special',color: 'bg-pink-100 text-pink-700 border-pink-200' },
+  loyalty:      { label: 'Loyalty',      color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  first_visit:  { label: 'First Visit',  color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  flash:        { label: 'Flash Deal',   color: 'bg-red-100 text-red-700 border-red-200' },
 };
 
 function formatOfferValue(offer: BusinessOffer): string {
@@ -251,7 +254,7 @@ export default function OffersPage() {
                       {offer.expires_at ? format(new Date(offer.expires_at), 'MMM d, yyyy') : '—'}
                     </td>
                     <td className="px-4 py-4">
-                      <span className="font-semibold text-gray-900">{offer.redemption_count ?? 0}</span>
+                      <span className="font-semibold text-gray-900">{offer.current_redemptions ?? 0}</span>
                       {offer.max_redemptions && (
                         <span className="text-gray-400 text-xs">/{offer.max_redemptions}</span>
                       )}
@@ -306,9 +309,12 @@ export default function OffersPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Offer Type</label>
                 <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600" {...f('offer_type')}>
                   <option value="discount">Discount</option>
-                  <option value="coupon">Coupon</option>
+                  <option value="bogo">Buy One Get One</option>
                   <option value="freebie">Freebie</option>
-                  <option value="gift_card">Gift Card</option>
+                  <option value="event_special">Event Special</option>
+                  <option value="loyalty">Loyalty Reward</option>
+                  <option value="first_visit">First Visit</option>
+                  <option value="flash">Flash Deal</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">

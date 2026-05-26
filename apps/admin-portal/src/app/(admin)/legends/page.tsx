@@ -5,7 +5,7 @@ import { Trophy, Star, TrendingUp, Users, Award, Lock, Loader2 } from 'lucide-re
 import { createBrowserClient } from '@supabase/ssr';
 
 interface LegendProfile {
-  display_name: string | null;
+  full_name: string | null;
   email: string | null;
   tier: string | null;
   points_balance: number | null;
@@ -66,7 +66,7 @@ export default function LegendsPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('community_legends')
-        .select('*, profiles!user_id(display_name, email, tier, points_balance, avatar_url)')
+        .select('*, profiles!user_id(full_name, email, tier, points_balance, avatar_url)')
         .order('inducted_at', { ascending: false });
       if (!error && data) {
         setLegends(data as unknown as LegendRow[]);
@@ -142,7 +142,7 @@ export default function LegendsPage() {
             const tierInfo = TIERS.find(t => t.id === legend.tier);
             const colors = TIER_COLORS[legend.tier];
             const profile = legend.profiles;
-            const name = profile?.display_name ?? 'Unknown';
+            const name = profile?.full_name ?? 'Unknown';
             const inductedDate = legend.inducted_at
               ? new Date(legend.inducted_at).toLocaleDateString()
               : '—';

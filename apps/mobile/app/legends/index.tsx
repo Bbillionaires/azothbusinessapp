@@ -33,7 +33,7 @@ interface CommunityLegend {
   is_permanent: boolean;
   created_at: string;
   profiles?: {
-    display_name: string | null;
+    full_name: string | null;
     avatar_url: string | null;
   };
 }
@@ -91,7 +91,7 @@ interface HallCardProps {
 }
 
 function HallCard({ legend }: HallCardProps) {
-  const name = maskName(legend.profiles?.display_name);
+  const name = maskName(legend.profiles?.full_name);
   return (
     <View style={styles.hallCard}>
       <View style={styles.hallAvatarWrap}>
@@ -123,7 +123,7 @@ interface LegendRowProps {
 
 function LegendRow({ legend }: LegendRowProps) {
   const config = TIER_CONFIG[legend.tier] ?? TIER_CONFIG.bronze;
-  const name = maskName(legend.profiles?.display_name);
+  const name = maskName(legend.profiles?.full_name);
 
   return (
     <View style={[styles.legendRow, { borderLeftColor: config.color }]}>
@@ -165,7 +165,7 @@ export default function LegendsScreen() {
     try {
       const { data, error } = await supabase
         .from('community_legends')
-        .select('*, profiles(display_name, avatar_url)')
+        .select('*, profiles(full_name, avatar_url)')
         .order('tier', { ascending: false })
         .order('total_impact_score', { ascending: false });
 

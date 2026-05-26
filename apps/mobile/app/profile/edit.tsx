@@ -38,7 +38,7 @@ export default function ProfileEditScreen() {
   // Pre-fill from existing profile
   useEffect(() => {
     if (profile) {
-      setDisplayName(profile.display_name ?? profile.full_name ?? '')
+      setDisplayName(profile.full_name ?? '')
       setBio(profile.bio ?? '')
       setAvatarUrl(profile.avatar_url ?? null)
     }
@@ -101,7 +101,7 @@ export default function ProfileEditScreen() {
 
     setSaving(true)
     const { error } = await updateProfile({
-      display_name: trimmedName,
+      full_name: trimmedName,
       bio: bio.trim(),
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     })

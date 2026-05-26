@@ -19,7 +19,7 @@ interface Follower {
   id: string
   user_id: string
   created_at: string
-  display_name: string | null
+  full_name: string | null
 }
 
 interface ChartPoint {
@@ -66,10 +66,10 @@ export default function FollowersPage() {
 
         setTotalCount(count ?? 0)
 
-        // Get recent 50 followers with optional public display_name via join
+        // Get recent 50 followers with optional public full_name via join
         const { data } = await supabase
           .from('business_followers')
-          .select('id, user_id, created_at, profiles(display_name)')
+          .select('id, user_id, created_at, profiles(full_name)')
           .eq('business_id', business!.id)
           .order('created_at', { ascending: false })
           .limit(50)
@@ -78,7 +78,7 @@ export default function FollowersPage() {
           id: row.id,
           user_id: row.user_id,
           created_at: row.created_at,
-          display_name: row.profiles?.display_name ?? null,
+          full_name: row.profiles?.full_name ?? null,
         }))
 
         setFollowers(normalized)
@@ -204,7 +204,7 @@ export default function FollowersPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {follower.display_name ?? 'Community Member'}
+                    {follower.full_name ?? 'Community Member'}
                   </p>
                 </div>
                 <time className="text-xs text-gray-400 shrink-0">

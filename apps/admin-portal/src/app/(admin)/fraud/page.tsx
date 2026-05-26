@@ -16,7 +16,7 @@ interface FraudReceipt {
   submitted_at?: string;
   fraud_flags?: Record<string, unknown> | string[] | null;
   image_url?: string;
-  profiles?: { display_name?: string; email?: string } | null;
+  profiles?: { full_name?: string; email?: string } | null;
   businesses?: { name?: string } | null;
 }
 
@@ -106,7 +106,7 @@ export default function FraudPage() {
     setLoading(true);
     let query = supabase
       .from('receipts')
-      .select('*, profiles!user_id(display_name, email), businesses(name)')
+      .select('*, profiles!user_id(full_name, email), businesses(name)')
       .gte('fraud_score', 30)
       .order('fraud_score', { ascending: false })
       .limit(50);
@@ -146,7 +146,7 @@ export default function FraudPage() {
   const totalAll = receipts.length;
   const fraudRate = totalAll > 0 ? ((highRisk / totalAll) * 100).toFixed(1) + '%' : '—';
 
-  const getUserLabel = (r: FraudReceipt) => r.profiles?.display_name ?? r.profiles?.email ?? `#${r.user_id?.slice(0, 6) ?? '?'}`;
+  const getUserLabel = (r: FraudReceipt) => r.profiles?.full_name ?? r.profiles?.email ?? `#${r.user_id?.slice(0, 6) ?? '?'}`;
   const getMerchant = (r: FraudReceipt) => r.businesses?.name ?? r.merchant_name ?? 'Unknown';
 
   return (

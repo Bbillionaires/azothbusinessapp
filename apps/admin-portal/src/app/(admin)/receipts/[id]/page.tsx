@@ -33,7 +33,7 @@ interface UserHistory {
   fraud_receipts: number;
   approval_rate: number;
   total_points: number;
-  display_name?: string;
+  full_name?: string;
   email?: string;
 }
 
@@ -60,7 +60,7 @@ export default function ReceiptDetailPage() {
       try {
         const { data, error } = await supabase
           .from('receipts')
-          .select('*, profiles!user_id(display_name, email, tier, points_balance), businesses(name, city, state)')
+          .select('*, profiles!user_id(full_name, email, tier, points_balance), businesses(name, city, state)')
           .eq('id', params.id as string)
           .single();
 
@@ -79,7 +79,7 @@ export default function ReceiptDetailPage() {
               const approved = histData.filter((r: { status: string }) => r.status === 'approved').length;
               const rejected = histData.filter((r: { status: string }) => r.status === 'rejected').length;
               const flagged = histData.filter((r: { status: string; fraud_score: number }) => r.status === 'flagged' || r.fraud_score >= 90).length;
-              const profile = (data as unknown as Record<string, unknown>).profiles as { display_name?: string; email?: string; points_balance?: number } | null;
+              const profile = (data as unknown as Record<string, unknown>).profiles as { full_name?: string; email?: string; points_balance?: number } | null;
               setUserHistory({
                 total_receipts: total,
                 approved_receipts: approved,
@@ -87,7 +87,7 @@ export default function ReceiptDetailPage() {
                 fraud_receipts: flagged,
                 approval_rate: total > 0 ? Math.round((approved / total) * 100) : 0,
                 total_points: profile?.points_balance ?? 0,
-                display_name: profile?.display_name ?? undefined,
+                full_name: profile?.full_name ?? undefined,
                 email: profile?.email ?? undefined,
               });
             }
@@ -323,8 +323,8 @@ export default function ReceiptDetailPage() {
             <h2 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
               <User className="w-4 h-4 text-blue-400" />
               User History
-              {userHistory?.display_name && (
-                <span className="text-xs text-slate-400 font-normal ml-1">— {userHistory.display_name}</span>
+              {userHistory?.full_name && (
+                <span className="text-xs text-slate-400 font-normal ml-1">— {userHistory.full_name}</span>
               )}
             </h2>
             {userHistory ? (

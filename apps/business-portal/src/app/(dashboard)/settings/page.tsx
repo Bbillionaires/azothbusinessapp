@@ -42,11 +42,11 @@ function SettingsContent() {
         // Load profile display name
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name')
+          .select('full_name')
           .eq('id', user.id)
           .single()
 
-        if (profile) setDisplayName(profile.display_name ?? '')
+        if (profile) setDisplayName(profile.full_name ?? '')
 
         // Load user settings
         const { data: settings } = await supabase
@@ -79,7 +79,7 @@ function SettingsContent() {
 
       const { error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, display_name: displayName.trim(), updated_at: new Date().toISOString() })
+        .upsert({ id: user.id, full_name: displayName.trim(), updated_at: new Date().toISOString() })
 
       if (error) throw error
       showToast('Account details saved!', 'success')
