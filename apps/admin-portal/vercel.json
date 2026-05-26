@@ -1,0 +1,25 @@
+{
+  "name": "lfr-admin-portal",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@local-first-rewards/admin-portal",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@lfr-supabase-url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@lfr-supabase-anon-key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@lfr-supabase-service-role-key",
+    "NEXT_PUBLIC_POSTHOG_KEY": "@lfr-posthog-key",
+    "NEXT_PUBLIC_POSTHOG_HOST": "https://app.posthog.com"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

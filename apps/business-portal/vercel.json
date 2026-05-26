@@ -1,0 +1,31 @@
+{
+  "name": "lfr-business-portal",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@local-first-rewards/business-portal",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@lfr-supabase-url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@lfr-supabase-anon-key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@lfr-supabase-service-role-key",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@lfr-stripe-publishable-key",
+    "STRIPE_SECRET_KEY": "@lfr-stripe-secret-key",
+    "STRIPE_WEBHOOK_SECRET": "@lfr-stripe-webhook-secret",
+    "STRIPE_PRICE_GREENWOOD_BASIC": "@lfr-stripe-price-basic",
+    "STRIPE_PRICE_GREENWOOD_PRO": "@lfr-stripe-price-pro",
+    "STRIPE_PRICE_GREENWOOD_ELITE": "@lfr-stripe-price-elite",
+    "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "@lfr-google-maps-key",
+    "NEXT_PUBLIC_POSTHOG_KEY": "@lfr-posthog-key",
+    "NEXT_PUBLIC_POSTHOG_HOST": "https://app.posthog.com"
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    }
+  ]
+}
