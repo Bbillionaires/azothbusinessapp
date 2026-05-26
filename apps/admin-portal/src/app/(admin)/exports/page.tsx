@@ -72,12 +72,14 @@ export default function ExportsPage() {
     businesses: 'idle',
     receipts: 'idle',
     analytics: 'idle',
+    transactions: 'idle',
   });
   const [errors, setErrors] = useState<Record<ExportType, string | null>>({
     users: null,
     businesses: null,
     receipts: null,
     analytics: null,
+    transactions: null,
   });
 
   async function handleExport(config: ExportConfig) {

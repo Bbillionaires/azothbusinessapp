@@ -22,7 +22,7 @@ const schema = z.object({
   capacity: z.coerce.number().int().positive('Capacity must be a positive number'),
   priceType: z.enum(['free', 'paid']),
   price: z.coerce.number().min(0).optional(),
-  category: z.string().optional(),
+  category: z.enum(['community', 'vendor_market', 'art_walk', 'food_truck', 'grand_opening', 'networking', 'workshop', 'fundraiser', 'other']).optional(),
   imageUrl: z.string().url().optional().or(z.literal('')),
 });
 
@@ -125,10 +125,12 @@ export default function NewEventPage() {
           label="Event Category"
           options={[
             { value: 'community', label: 'Community' },
-            { value: 'sale', label: 'Sale / Promotion' },
+            { value: 'vendor_market', label: 'Vendor Market' },
+            { value: 'art_walk', label: 'Art Walk' },
+            { value: 'food_truck', label: 'Food Truck Event' },
+            { value: 'grand_opening', label: 'Grand Opening' },
             { value: 'networking', label: 'Networking' },
             { value: 'workshop', label: 'Workshop / Class' },
-            { value: 'celebration', label: 'Celebration' },
             { value: 'fundraiser', label: 'Fundraiser' },
             { value: 'other', label: 'Other' },
           ]}

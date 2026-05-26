@@ -30,9 +30,9 @@ interface ReferralProgram {
   description: string | null;
   terms: string | null;
   requirements: string[] | null;
-  commission_type: string | null;
-  commission_amount: number | null;
-  commission_percent: number | null;
+  type: string | null;
+  rate: number | null;
+  rate_type: string | null;
   min_payout: number | null;
   is_active: boolean;
   created_at: string | null;
@@ -67,13 +67,11 @@ const COMMISSION_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 function formatCommissionValue(program: ReferralProgram): string {
-  if (program.commission_type === 'revenue_share' && program.commission_percent) {
-    return `${program.commission_percent}%`;
+  if (!program.rate) return '—';
+  if (program.rate_type === 'percent') {
+    return `${program.rate}%`;
   }
-  if (program.commission_amount) {
-    return `$${program.commission_amount.toFixed(0)}`;
-  }
-  return '—';
+  return `$${program.rate.toFixed(0)}`;
 }
 
 const DEFAULT_REQUIREMENTS = [
@@ -168,8 +166,8 @@ export default function ReferralProgramDetailScreen() {
   }
 
   const business = program.businesses;
-  const commStyle = COMMISSION_COLORS[program.commission_type ?? ''] ?? { bg: Colors.surfaceAlt, text: Colors.textSecondary };
-  const commLabel = COMMISSION_LABELS[program.commission_type ?? ''] ?? 'Commission';
+  const commStyle = COMMISSION_COLORS[program.type ?? ''] ?? { bg: Colors.surfaceAlt, text: Colors.textSecondary };
+  const commLabel = COMMISSION_LABELS[program.type ?? ''] ?? 'Commission';
   const commValue = formatCommissionValue(program);
   const requirements = program.requirements?.length ? program.requirements : DEFAULT_REQUIREMENTS;
 

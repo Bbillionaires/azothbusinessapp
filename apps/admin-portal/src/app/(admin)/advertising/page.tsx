@@ -12,14 +12,14 @@ interface AdCampaign {
   advertiser_id: string;
   business_id: string;
   name: string;
-  type: 'sponsored_listing' | 'banner_ad' | 'push_notification' | 'featured_story' | 'event_boost';
+  type: 'sponsored_listing' | 'banner' | 'push_notification';
   budget: number;
   spent: number;
-  status: 'draft' | 'pending' | 'active' | 'paused' | 'completed' | 'rejected';
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'rejected';
   impressions: number;
   clicks: number;
-  start_date: string | null;
-  end_date: string | null;
+  start_at: string | null;
+  end_at: string | null;
   created_at: string;
   businesses: {
     name: string;
@@ -33,17 +33,14 @@ interface AdCampaign {
 // ---------------------------------------------------------------------------
 const TYPE_LABELS: Record<string, string> = {
   sponsored_listing: 'Sponsored Listing',
-  banner_ad: 'Banner Ad',
+  banner: 'Banner Ad',
   push_notification: 'Push Notification',
-  featured_story: 'Featured Story',
-  event_boost: 'Event Boost',
 };
 
 const STATUS_STYLES: Record<string, string> = {
   active: 'bg-green-900/40 text-green-400',
   completed: 'bg-slate-600 text-gray-400',
   paused: 'bg-yellow-900/40 text-yellow-400',
-  pending: 'bg-blue-900/40 text-blue-400',
   draft: 'bg-slate-700 text-gray-500',
   rejected: 'bg-red-900/40 text-red-400',
 };
@@ -181,7 +178,7 @@ export default function AdminAdvertisingPage() {
 
       {/* Filter */}
       <div className="flex gap-2 flex-wrap">
-        {['All', 'Active', 'Paused', 'Pending', 'Completed', 'Rejected'].map(f => (
+        {['All', 'Active', 'Paused', 'Draft', 'Completed', 'Rejected'].map(f => (
           <button
             key={f}
             onClick={() => setStatusFilter(f)}

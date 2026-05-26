@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  Linking,
 } from 'react-native';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -218,7 +219,16 @@ export default function MapScreen() {
             />
             <TouchableOpacity
               style={styles.directionsBtn}
-              onPress={() => {/* open maps */}}
+              onPress={() => {
+                const query = encodeURIComponent(
+                  [selectedBusiness.name, selectedBusiness.city, selectedBusiness.state]
+                    .filter(Boolean).join(', ')
+                );
+                const url = Platform.OS === 'ios'
+                  ? `maps:0,0?q=${query}`
+                  : `https://maps.google.com/?q=${query}`;
+                Linking.openURL(url);
+              }}
             >
               <Ionicons name="navigate" size={16} color="#fff" />
               <Text style={styles.directionsBtnText}>Get Directions</Text>

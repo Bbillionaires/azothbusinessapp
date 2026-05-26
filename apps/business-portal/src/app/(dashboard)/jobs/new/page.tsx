@@ -23,7 +23,6 @@ const schema = z.object({
   description: z.string().min(20, 'Job description must be at least 20 characters'),
   requirements: z.string().optional(),
   benefits: z.string().optional(),
-  applicationEmail: z.string().email('Enter a valid email').optional().or(z.literal('')),
   applicationUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
 });
 
@@ -168,10 +167,7 @@ export default function NewJobPage() {
 
         <div className="border-t border-gray-200 pt-4">
           <p className="text-sm font-medium text-gray-700 mb-3">How to Apply</p>
-          <div className="grid grid-cols-1 gap-3">
-            <Input label="Application Email" type="email" placeholder="careers@yourbusiness.com" error={errors.applicationEmail?.message} {...register('applicationEmail')} />
-            <Input label="Application URL" type="url" placeholder="https://yourwebsite.com/careers" error={errors.applicationUrl?.message} {...register('applicationUrl')} />
-          </div>
+          <Input label="Application URL" type="url" placeholder="https://yourwebsite.com/careers" error={errors.applicationUrl?.message} {...register('applicationUrl')} />
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-200">

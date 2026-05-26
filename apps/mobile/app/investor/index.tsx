@@ -138,7 +138,7 @@ export default function InvestorScreen() {
       const { data, error } = await supabase
         .from('businesses')
         .select('id, name, category, city, state, description, verification_level, is_featured')
-        .eq('is_active', true)
+        .eq('status', 'active')
         .order('is_featured', { ascending: false })
         .order('name', { ascending: true })
         .limit(100);

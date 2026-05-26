@@ -93,7 +93,7 @@ export default function UserDetailPage() {
       // Load recent points transactions as activity
       const { data: txns } = await supabase
         .from('points_transactions')
-        .select('id, transaction_type, amount, description, created_at')
+        .select('id, type, amount, description, created_at')
         .eq('user_id', id as string)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -101,8 +101,8 @@ export default function UserDetailPage() {
       if (txns) {
         setActivity(txns.map(t => ({
           id: t.id,
-          type: t.transaction_type,
-          description: t.description ?? t.transaction_type,
+          type: t.type,
+          description: t.description ?? t.type,
           created_at: t.created_at,
           points: t.amount,
         })));
@@ -135,14 +135,15 @@ export default function UserDetailPage() {
     } else if (action === 'adjust_points') {
       const amount = parseInt(adjustPoints);
       if (!amount || !adjustReason) { showMsg('Enter amount and reason', 'error'); setActionLoading(null); return; }
-      const { error } = await supabase.from('points_transactions').insert({
-        user_id: id as string,
-        transaction_type: amount > 0 ? 'admin_adjustment' : 'admin_deduction',
-        amount: Math.abs(amount),
-        description: `Admin adjustment: ${adjustReason}`,
+      const { error } = await supabase.rpc('award_points', {
+        p_user_id: id as string,
+        p_amount: amount,
+        p_type: 'adjustment',
+        p_description: `Admin adjustment: ${adjustReason}`,
+        p_reference_type: 'admin',
       });
       if (!error) {
-        setUser(prev => prev ? { ...prev, points_balance: prev.points_balance + amount } : null);
+        setUser(prev => prev ? { ...prev, points_balance: Math.max(0, prev.points_balance + amount) } : null);
         setAdjustPoints('');
         setAdjustReason('');
         showMsg(`Points ${amount > 0 ? 'added' : 'removed'} successfully`);
@@ -256,7 +257,7 @@ export default function UserDetailPage() {
               {activity.map(a => (
                 <div key={a.id} className="flex items-start gap-2 text-sm">
                   <span className="text-lg flex-shrink-0">
-                    {a.type === 'earn' ? '🧾' : a.type === 'redeem' ? '🎁' : a.type === 'admin_adjustment' ? '⚙️' : '📋'}
+                    {a.type === 'earned' ? '🧾' : a.type === 'spent' ? '🎁' : a.type === 'adjustment' ? '⚙️' : a.type === 'referral' ? '👥' : a.type === 'bonus' ? '⭐' : '📋'}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-gray-300 truncate">{a.description}</p>

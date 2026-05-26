@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase'
 
-type ExportType = 'users' | 'businesses' | 'receipts' | 'analytics'
+type ExportType = 'users' | 'businesses' | 'receipts' | 'analytics' | 'transactions'
 
-const VALID_TYPES: ExportType[] = ['users', 'businesses', 'receipts', 'analytics']
+const VALID_TYPES: ExportType[] = ['users', 'businesses', 'receipts', 'analytics', 'transactions']
 
 // Converts an array of objects to CSV string
 function toCSV(rows: Record<string, unknown>[]): string {
@@ -58,6 +58,18 @@ async function exportReceipts(serviceClient: ReturnType<typeof createSupabaseSer
     .order('submitted_at', { ascending: false })
 
   if (error) throw new Error(`Failed to query receipts: ${error.message}`)
+  return (data ?? []) as Record<string, unknown>[]
+}
+
+async function exportTransactions(serviceClient: ReturnType<typeof createSupabaseServiceClient>) {
+  const { data, error } = await serviceClient
+    .from('points_transactions')
+    .select(
+      'id, user_id, amount, type, description, reference_id, reference_type, created_at'
+    )
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(`Failed to query transactions: ${error.message}`)
   return (data ?? []) as Record<string, unknown>[]
 }
 
@@ -131,6 +143,9 @@ export async function GET(
         break
       case 'analytics':
         rows = await exportAnalytics(serviceClient)
+        break
+      case 'transactions':
+        rows = await exportTransactions(serviceClient)
         break
     }
 
