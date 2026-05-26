@@ -82,3 +82,19 @@ verify_jwt = false
 
 [functions.award-badge]
 verify_jwt = false
+
+[functions.check-offer-expiry]
+verify_jwt = false
+
+[functions.referral-cleanup]
+verify_jwt = false
+
+# ============================================================
+# Cron Jobs (pg_cron via Supabase Scheduled Functions)
+# In production, set up these via Supabase dashboard under:
+# Database -> Extensions -> pg_cron
+# or via Supabase Edge Function scheduled triggers
+# ============================================================
+# compute-analytics: daily at 2 AM UTC
+# check-offer-expiry: every hour
+# referral-cleanup: daily at 3 AM UTC

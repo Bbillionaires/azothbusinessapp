@@ -49,6 +49,77 @@ INSERT INTO achievements (name, description, icon, criteria, points_reward, is_a
 --   special_offer, investment_opportunity
 
 -- ==================================================
+-- DEMO BUSINESSES (sample data for development)
+-- ==================================================
+-- Note: these use fixed UUIDs so they can be referenced by other seed data
+INSERT INTO businesses (id, name, category, description, address, city, state, zip, phone, website, status,
+  is_local_owned, is_community_owned, is_woman_owned, is_veteran_owned,
+  verification_level, owner_id)
+SELECT
+  '11111111-1111-1111-1111-111111111111'::uuid,
+  'Soul Food Kitchen',
+  'Restaurant',
+  'Authentic Southern soul food made with family recipes passed down for generations. Fresh daily specials.',
+  '123 Auburn Ave NE', 'Atlanta', 'GA', '30303', '(404) 555-0101', 'https://soulfoodkitchen.com',
+  'active', true, true, true, false, 'basic',
+  (SELECT id FROM profiles WHERE role = 'consumer' LIMIT 1)
+WHERE EXISTS (SELECT 1 FROM profiles WHERE role = 'consumer')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO businesses (id, name, category, description, address, city, state, zip, phone, status,
+  is_local_owned, is_community_owned, verification_level, owner_id)
+SELECT
+  '22222222-2222-2222-2222-222222222222'::uuid,
+  'Community Tech Hub',
+  'Technology',
+  'Co-working space and tech education center serving the local community. Free Wi-Fi and coding workshops.',
+  '456 Sweet Auburn Ave', 'Atlanta', 'GA', '30312', '(404) 555-0202',
+  'active', true, true, 'pro',
+  (SELECT id FROM profiles WHERE role = 'consumer' LIMIT 1)
+WHERE EXISTS (SELECT 1 FROM profiles WHERE role = 'consumer')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==================================================
+-- DEMO OFFERS (tied to demo businesses)
+-- ==================================================
+INSERT INTO business_offers (business_id, title, description, offer_type, discount_percent, is_active, points_bonus, starts_at, expires_at)
+SELECT
+  '11111111-1111-1111-1111-111111111111'::uuid,
+  '20% Off Soul Food Sunday Specials',
+  'Every Sunday, enjoy 20% off our famous fried chicken, collard greens, and sweet potato pie.',
+  'discount', 20, true, 50,
+  NOW(), NOW() + INTERVAL '3 months'
+WHERE EXISTS (SELECT 1 FROM businesses WHERE id = '11111111-1111-1111-1111-111111111111')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO business_offers (business_id, title, description, offer_type, discount_amount, promo_code, is_active, points_bonus, starts_at, expires_at)
+SELECT
+  '22222222-2222-2222-2222-222222222222'::uuid,
+  'Free Day Pass for New Members',
+  'First-time visitors get a complimentary day pass to experience our co-working space.',
+  'freebie', 25, 'WELCOME25', true, 100,
+  NOW(), NOW() + INTERVAL '6 months'
+WHERE EXISTS (SELECT 1 FROM businesses WHERE id = '22222222-2222-2222-2222-222222222222')
+ON CONFLICT DO NOTHING;
+
+-- ==================================================
+-- DEMO EVENTS
+-- ==================================================
+INSERT INTO events (business_id, organizer_id, title, description, event_type, starts_at, ends_at, address, city, is_free, points_reward, status)
+SELECT
+  '22222222-2222-2222-2222-222222222222'::uuid,
+  (SELECT id FROM profiles WHERE role = 'consumer' LIMIT 1),
+  'Free Python Coding Workshop',
+  'Learn Python basics in this hands-on 3-hour workshop. No prior experience needed. Laptop required.',
+  'workshop',
+  NOW() + INTERVAL '7 days',
+  NOW() + INTERVAL '7 days' + INTERVAL '3 hours',
+  '456 Sweet Auburn Ave', 'Atlanta',
+  true, 75, 'published'
+WHERE EXISTS (SELECT 1 FROM profiles WHERE role = 'consumer')
+ON CONFLICT DO NOTHING;
+
+-- ==================================================
 -- SYSTEM CONFIGURATION DEFAULTS
 -- (stored in a key-value config table)
 -- ==================================================
