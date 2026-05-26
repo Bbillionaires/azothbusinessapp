@@ -49,6 +49,12 @@ const PERMISSIONS = {
   // System settings
   accessSettings: ['super_admin'],
 
+  // Notifications
+  sendNotifications: ['admin_manager', 'super_admin'],
+
+  // Exports
+  exportData: ['super_admin'],
+
   // Reporting
   viewReports: ['admin_staff', 'admin_manager', 'super_admin'],
   exportReports: ['admin_manager', 'super_admin'],
@@ -149,6 +155,14 @@ export function canExportReports(role: AdminRole): boolean {
   return hasPermission(role, 'exportReports');
 }
 
+export function canSendNotifications(role: AdminRole): boolean {
+  return hasPermission(role, 'sendNotifications');
+}
+
+export function canExportData(role: AdminRole): boolean {
+  return hasPermission(role, 'exportData');
+}
+
 // Role display helpers
 export const ROLE_LABELS: Record<AdminRole, string> = {
   admin_staff: 'Staff',
@@ -234,7 +248,19 @@ export function getNavItems(role: AdminRole): NavItem[] {
       permission: 'viewFraud',
     },
     {
-      label: 'Audit Logs',
+      label: 'Notifications',
+      href: '/notifications',
+      icon: 'Bell',
+      permission: 'sendNotifications',
+    },
+    {
+      label: 'Exports',
+      href: '/exports',
+      icon: 'Download',
+      permission: 'exportData',
+    },
+    {
+      label: 'Audit Log',
       href: '/audit',
       icon: 'ScrollText',
       permission: 'viewAuditLogs',

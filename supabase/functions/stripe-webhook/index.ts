@@ -28,6 +28,10 @@ Deno.serve(async (req: Request) => {
 
   try {
     switch (event.type) {
+      case 'payment_intent.succeeded': {
+        await handlePaymentIntentSucceeded(event.data.object, serviceClient);
+        break;
+      }
       case 'checkout.session.completed': {
         await handleCheckoutCompleted(event.data.object, serviceClient);
         break;
@@ -61,6 +65,23 @@ Deno.serve(async (req: Request) => {
     return new Response(`Handler error: ${err.message}`, { status: 500 });
   }
 });
+
+async function handlePaymentIntentSucceeded(paymentIntent: any, supabase: any) {
+  const { metadata } = paymentIntent;
+  if (!metadata) return;
+
+  if (metadata.type === 'ad_campaign') {
+    const { campaign_id } = metadata;
+    if (!campaign_id) return;
+
+    await supabase
+      .from('ad_campaigns')
+      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .eq('id', campaign_id);
+
+    console.log(`Ad campaign ${campaign_id} activated via payment_intent.succeeded`);
+  }
+}
 
 async function handleCheckoutCompleted(session: any, supabase: any) {
   const { metadata } = session;

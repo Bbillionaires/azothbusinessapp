@@ -156,7 +156,14 @@ export default function HomeScreen() {
             label="Refer"
             color={Colors.success}
             bg={Colors.successBg}
-            onPress={() => router.push('/(tabs)/profile')}
+            onPress={() => router.push('/referrals')}
+          />
+          <QuickAction
+            icon="pricetag-outline"
+            label="Deals"
+            color="#EA580C"
+            bg="#FFF7ED"
+            onPress={() => router.push('/offers')}
           />
         </View>
 
@@ -184,7 +191,7 @@ export default function HomeScreen() {
           <LeaderboardCard
             entries={MOCK_LEADERBOARD}
             currentUserRank={23}
-            onViewAll={() => router.push('/(tabs)/rewards')}
+            onViewAll={() => router.push('/leaderboard')}
           />
         </View>
 
