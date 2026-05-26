@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Bell,
   Send,
@@ -12,8 +12,10 @@ import {
   XCircle,
   Clock,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { createBrowserClient } from '@supabase/ssr';
 
 type TargetType = 'all' | 'user' | 'business_followers';
 
@@ -36,58 +38,22 @@ interface SentNotification {
   recipients: number;
 }
 
+interface DbNotification {
+  id: string;
+  user_id: string | null;
+  type: string | null;
+  title: string;
+  body: string;
+  data: Record<string, unknown> | null;
+  read: boolean;
+  created_at: string;
+  profiles: { display_name: string | null; email: string | null } | null;
+}
+
 const TARGET_OPTIONS: Array<{ value: TargetType; label: string; icon: React.ElementType; hint: string }> = [
   { value: 'all', label: 'All Users', icon: Users, hint: 'Broadcast to every registered user' },
   { value: 'user', label: 'Specific User', icon: User, hint: 'Send to a single user by ID or email' },
   { value: 'business_followers', label: 'Business Followers', icon: Briefcase, hint: 'Users who follow a specific business' },
-];
-
-// Mock notification history for display
-const MOCK_HISTORY: SentNotification[] = [
-  {
-    id: 'notif-1',
-    title: 'New rewards available!',
-    body: 'Check out exclusive deals from local businesses this weekend.',
-    target_type: 'all',
-    target_id: null,
-    target_label: 'All Users',
-    sent_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    status: 'success',
-    recipients: 4821,
-  },
-  {
-    id: 'notif-2',
-    title: 'Your receipt was approved',
-    body: 'You earned 120 points for your recent purchase at Greenwood Coffee.',
-    target_type: 'user',
-    target_id: 'user-abc123',
-    target_label: 'user-abc123',
-    sent_at: new Date(Date.now() - 5 * 3600000).toISOString(),
-    status: 'success',
-    recipients: 1,
-  },
-  {
-    id: 'notif-3',
-    title: 'LaVilla Hair is running a promotion!',
-    body: '20% off all services this week for our loyal followers.',
-    target_type: 'business_followers',
-    target_id: 'biz-lavilla',
-    target_label: 'LaVilla Hair (biz-lavilla)',
-    sent_at: new Date(Date.now() - 24 * 3600000).toISOString(),
-    status: 'success',
-    recipients: 342,
-  },
-  {
-    id: 'notif-4',
-    title: 'System maintenance tonight',
-    body: 'Brief downtime expected from 2–3 AM EST.',
-    target_type: 'all',
-    target_id: null,
-    target_label: 'All Users',
-    sent_at: new Date(Date.now() - 48 * 3600000).toISOString(),
-    status: 'failed',
-    recipients: 0,
-  },
 ];
 
 function TargetBadge({ type }: { type: TargetType }) {
@@ -118,8 +84,43 @@ export default function NotificationsPage() {
   const [userSearch, setUserSearch] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [history, setHistory] = useState<SentNotification[]>(MOCK_HISTORY);
+  const [history, setHistory] = useState<SentNotification[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [historySearch, setHistorySearch] = useState('');
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    async function fetchHistory() {
+      setHistoryLoading(true);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*, profiles!user_id(display_name, email)')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (!error && data) {
+        const mapped: SentNotification[] = (data as unknown as DbNotification[]).map(n => ({
+          id: n.id,
+          title: n.title,
+          body: n.body,
+          target_type: (n.type as TargetType) ?? 'user',
+          target_id: n.user_id,
+          target_label: n.profiles?.display_name ?? n.profiles?.email ?? n.user_id ?? 'Unknown',
+          sent_at: n.created_at,
+          status: 'success' as const,
+          recipients: 1,
+        }));
+        setHistory(mapped);
+      }
+      setHistoryLoading(false);
+    }
+    fetchHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedTarget = TARGET_OPTIONS.find((t) => t.value === form.target_type)!;
   const needsTargetId = form.target_type !== 'all';
@@ -377,7 +378,12 @@ export default function NotificationsPage() {
         </div>
 
         <div className="bg-[#1E293B] border border-slate-700 rounded-xl overflow-hidden">
-          {filteredHistory.length === 0 ? (
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-12 gap-3 text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Loading notification history...</span>
+            </div>
+          ) : filteredHistory.length === 0 ? (
             <div className="py-12 text-center text-slate-500 text-sm">No notifications found.</div>
           ) : (
             <table className="w-full text-sm">
