@@ -29,27 +29,27 @@ interface ReferralLink {
   id: string;
   user_id: string;
   code: string;
-  url: string | null;
-  total_clicks: number | null;
-  total_conversions: number | null;
-  total_earned: number | null;
+  clicks: number;
+  conversions: number;
+  earnings: number;
 }
 
 interface ReferralEvent {
   id: string;
   referrer_id: string;
   status: string | null;
-  commission_earned: number | null;
+  cash_awarded: number | null;
+  points_awarded: number;
 }
 
 interface ReferralProgram {
   id: string;
   business_id: string;
-  title: string | null;
+  title: string;
   description: string | null;
-  commission_type: string | null;
-  commission_amount: number | null;
-  commission_percent: number | null;
+  type: string | null;
+  rate: number;
+  rate_type: string;
   is_active: boolean;
   businesses?: {
     name: string;
@@ -78,11 +78,11 @@ const COMMISSION_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 function formatCommission(program: ReferralProgram): string {
-  if (program.commission_type === 'revenue_share' && program.commission_percent) {
-    return `${program.commission_percent}% of sale`;
+  if (program.rate_type === 'percent') {
+    return `${program.rate}% of sale`;
   }
-  if (program.commission_amount) {
-    return `$${program.commission_amount.toFixed(0)}`;
+  if (program.rate) {
+    return `$${program.rate.toFixed(0)}`;
   }
   return 'Contact for details';
 }
@@ -101,8 +101,8 @@ interface ProgramCardProps {
 }
 
 function ProgramCard({ program, onApply }: ProgramCardProps) {
-  const commStyle = getCommissionStyle(program.commission_type);
-  const commissionLabel = COMMISSION_LABELS[program.commission_type ?? ''] ?? 'Commission';
+  const commStyle = getCommissionStyle(program.type);
+  const commissionLabel = COMMISSION_LABELS[program.type ?? ''] ?? 'Commission';
   const commissionValue = formatCommission(program);
   const businessName = program.businesses?.name ?? 'Unknown Business';
   const category = program.businesses?.category ?? '';
@@ -174,7 +174,7 @@ export default function ReferralsScreen() {
           .single(),
         supabase
           .from('referral_events')
-          .select('id, referrer_id, status, commission_earned')
+          .select('id, referrer_id, status, cash_awarded, points_awarded')
           .eq('referrer_id', user.id),
         supabase
           .from('referral_marketplace')
@@ -203,7 +203,7 @@ export default function ReferralsScreen() {
 
   const handleShare = async () => {
     const code = referralLink?.code ?? user?.id?.slice(0, 8).toUpperCase() ?? 'LOCALFIRST';
-    const url = referralLink?.url ?? `https://localfirstrewards.com/join?ref=${code}`;
+    const url = `https://localfirstrewards.com/join?ref=${code}`;
     try {
       await Share.share({
         message: `Join me on Local First Rewards and support local businesses! Use my referral code ${code} or sign up here: ${url}`,
@@ -218,8 +218,8 @@ export default function ReferralsScreen() {
   // Stats derived from events
   const totalReferrals = events.length;
   const successful = events.filter((e) => e.status === 'converted' || e.status === 'completed').length;
-  const totalEarned = referralLink?.total_earned
-    ?? events.reduce((sum, e) => sum + (e.commission_earned ?? 0), 0);
+  const totalEarned = referralLink?.earnings
+    ?? events.reduce((sum, e) => sum + (e.cash_awarded ?? 0), 0);
 
   const referralCode = referralLink?.code ?? user?.id?.slice(0, 8).toUpperCase() ?? '—';
 
