@@ -3,6 +3,50 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 
+type Business = {
+  id: string; name: string; description: string | null; category: string;
+  address: string | null; city: string; state: string; zip: string | null;
+  phone: string | null; website: string | null; status: string;
+  verification_level: string | null; verified_at: string | null;
+  is_featured: boolean; hours: Record<string, unknown> | null;
+  owner_id: string; created_at: string;
+  business_social: Array<Record<string, string>> | null;
+  business_photos: Array<{ id: string; url: string; is_cover: boolean }> | null;
+  business_services: Array<{ id: string; name: string; price: number | null }> | null;
+};
+
+export function useBusiness() {
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const supabase = createClient();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error: err } = await supabase
+        .from('businesses')
+        .select('*, business_social(*), business_photos(*), business_services(*)')
+        .eq('owner_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (err) throw err;
+      setBusiness(data as Business);
+    } catch (err: any) {
+      setError(err.message ?? 'Failed to load business');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { business, loading, error, refresh: load };
+}
+
 export interface BusinessProfile {
   id: string;
   owner_id: string;
