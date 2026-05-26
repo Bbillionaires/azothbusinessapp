@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldCheck, Check, Lock } from 'lucide-react';
+import { Check, Lock, RefreshCw } from 'lucide-react';
+import { useBusiness } from '@/hooks/useBusiness';
 
 const TIERS = [
   {
@@ -76,16 +77,31 @@ const BENEFITS = [
 ];
 
 export default function VerificationPage() {
-  const [currentLevel] = useState<string | null>(null);
+  const { business, loading } = useBusiness();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const currentLevel = business?.verification_level ?? null;
 
   const handlePurchase = async (tierId: string, price: number | null) => {
-    if (!price) return;
+    if (!price || !business) return;
     setProcessing(tierId);
-    // In production: call Stripe checkout session API
-    await new Promise(r => setTimeout(r, 1500));
-    setProcessing(null);
-    alert(`Redirecting to Stripe checkout for ${TIERS.find(t => t.id === tierId)?.name}...`);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/checkout/verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: tierId, business_id: business.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create checkout session');
+      if (data.checkout_url) window.location.href = data.checkout_url;
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong');
+    } finally {
+      setProcessing(null);
+    }
   };
 
   return (
@@ -96,7 +112,18 @@ export default function VerificationPage() {
           Build trust with local consumers by verifying your business. Verified businesses rank higher
           and attract more customers.
         </p>
+        {currentLevel && !loading && (
+          <div className="mt-3 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+            <span className="text-green-700 font-semibold text-sm">
+              ✔ Current level: Greenwood {currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1).replace('_', ' ')}™
+            </span>
+          </div>
+        )}
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">{error}</div>
+      )}
 
       {/* Benefits row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -111,70 +138,78 @@ export default function VerificationPage() {
 
       {/* Verification tiers */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {TIERS.map(tier => (
-          <div
-            key={tier.id}
-            className="relative rounded-2xl border-2 overflow-hidden flex flex-col"
-            style={{ borderColor: tier.border, backgroundColor: tier.bg }}
-          >
-            {tier.popular && (
-              <div className="absolute top-0 left-0 right-0 text-center py-1 text-xs font-bold text-white"
-                style={{ backgroundColor: tier.color }}>
-                Most Popular
+        {TIERS.map(tier => {
+          const isCurrent = currentLevel === tier.id;
+          const isUpgrade = currentLevel && TIERS.findIndex(t => t.id === currentLevel) < TIERS.findIndex(t => t.id === tier.id);
+          return (
+            <div
+              key={tier.id}
+              className="relative rounded-2xl border-2 overflow-hidden flex flex-col"
+              style={{ borderColor: isCurrent ? tier.color : tier.border, backgroundColor: tier.bg }}
+            >
+              {tier.popular && !isCurrent && (
+                <div className="absolute top-0 left-0 right-0 text-center py-1 text-xs font-bold text-white"
+                  style={{ backgroundColor: tier.color }}>
+                  Most Popular
+                </div>
+              )}
+              {isCurrent && (
+                <div className="absolute top-0 left-0 right-0 text-center py-1 text-xs font-bold text-white"
+                  style={{ backgroundColor: tier.color }}>
+                  ✓ Your Current Plan
+                </div>
+              )}
+
+              <div className={`p-6 flex-1 flex flex-col ${tier.popular || isCurrent ? 'pt-10' : ''}`}>
+                <div className="text-3xl mb-3">{tier.badge}</div>
+                <h3 className="font-bold text-lg text-gray-900 leading-tight mb-1">{tier.name}</h3>
+
+                {tier.price !== null ? (
+                  <div className="mb-4">
+                    <span className="text-3xl font-extrabold" style={{ color: tier.color }}>${tier.price}</span>
+                    <span className="text-gray-500 text-sm">/month</span>
+                  </div>
+                ) : (
+                  <div className="mb-4 flex items-center gap-1">
+                    <Lock size={16} className="text-purple-600" />
+                    <span className="font-bold text-purple-700">Invitation Only</span>
+                  </div>
+                )}
+
+                <ul className="space-y-2 flex-1">
+                  {tier.items.map((item, ii) => (
+                    <li key={ii} className="flex items-start gap-2 text-sm text-gray-700">
+                      <Check size={14} className="mt-0.5 flex-shrink-0" style={{ color: tier.color }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                {tier.price !== null ? (
+                  <button
+                    onClick={() => handlePurchase(tier.id, tier.price)}
+                    disabled={processing === tier.id || isCurrent || loading}
+                    className="mt-6 w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                    style={{ backgroundColor: tier.color }}
+                  >
+                    {processing === tier.id ? (
+                      <><RefreshCw size={14} className="animate-spin" /> Processing...</>
+                    ) : isCurrent ? '✓ Current Plan'
+                      : isUpgrade ? `Upgrade to ${tier.name.split('™')[0]}`
+                      : `Get ${tier.name.split('™')[0]}`}
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="mt-6 w-full py-3 rounded-xl font-bold text-purple-700 text-sm bg-purple-100 cursor-not-allowed"
+                  >
+                    By Invitation Only
+                  </button>
+                )}
               </div>
-            )}
-
-            <div className={`p-6 flex-1 flex flex-col ${tier.popular ? 'pt-10' : ''}`}>
-              <div className="text-3xl mb-3">{tier.badge}</div>
-              <h3 className="font-bold text-lg text-gray-900 leading-tight mb-1">{tier.name}</h3>
-
-              {tier.price !== null ? (
-                <div className="mb-4">
-                  <span className="text-3xl font-extrabold" style={{ color: tier.color }}>
-                    ${tier.price}
-                  </span>
-                  <span className="text-gray-500 text-sm">/month</span>
-                </div>
-              ) : (
-                <div className="mb-4 flex items-center gap-1">
-                  <Lock size={16} className="text-purple-600" />
-                  <span className="font-bold text-purple-700">Invitation Only</span>
-                </div>
-              )}
-
-              <ul className="space-y-2 flex-1">
-                {tier.items.map((item, ii) => (
-                  <li key={ii} className="flex items-start gap-2 text-sm text-gray-700">
-                    <Check size={14} className="mt-0.5 flex-shrink-0" style={{ color: tier.color }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              {tier.price !== null ? (
-                <button
-                  onClick={() => handlePurchase(tier.id, tier.price)}
-                  disabled={processing === tier.id || currentLevel === tier.id}
-                  className="mt-6 w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity disabled:opacity-60"
-                  style={{ backgroundColor: tier.color }}
-                >
-                  {processing === tier.id
-                    ? 'Processing...'
-                    : currentLevel === tier.id
-                    ? '✓ Current Plan'
-                    : `Get ${tier.name.split('™')[0]}`}
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="mt-6 w-full py-3 rounded-xl font-bold text-purple-700 text-sm bg-purple-100 cursor-not-allowed"
-                >
-                  By Invitation Only
-                </button>
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* FAQ */}
