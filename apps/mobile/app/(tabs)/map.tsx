@@ -18,7 +18,7 @@ import { BusinessCard } from '../../components/business/BusinessCard';
 import { BusinessFilters } from '../../components/business/BusinessFilters';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { THEME } from '../../lib/theme';
-import type { Business } from '../../hooks/useBusinesses';
+import type { BusinessSummary as Business } from '../../hooks/useBusinesses';
 
 const { height } = Dimensions.get('window');
 
@@ -61,12 +61,12 @@ export default function MapScreen() {
     longitudeDelta: 0.05,
   };
 
-  const { businesses, isLoading } = useBusinesses({
+  const { data: businesses = [], loading: isLoading } = useBusinesses({
     lat: initialRegion.latitude,
     lng: initialRegion.longitude,
-    radius: 10,
-    search: searchQuery,
-    filters: activeFilters,
+    radius_miles: 10,
+    search_query: searchQuery || undefined,
+    filter_badges: activeFilters.length > 0 ? activeFilters : undefined,
   });
 
   const toggleFilter = useCallback((key: string) => {
