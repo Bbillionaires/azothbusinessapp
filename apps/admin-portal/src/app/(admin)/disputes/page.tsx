@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
-import { MessageSquare, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageSquare, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
 
-const MOCK_DISPUTES = [
-  { id: '1', type: 'receipt', user: 'Marcus Johnson', subject: 'Points not awarded for approved receipt', description: 'My receipt was approved 3 days ago but I still haven\'t received my 47 points.', status: 'open', priority: 'medium', created: '2024-05-24', receipt_id: 'REC-4721' },
-  { id: '2', type: 'review', user: 'Unknown User', subject: 'Unfair negative review — competitor', description: 'This review appears to be from a competitor. Reviewer has no purchase history at my location.', status: 'investigating', priority: 'high', created: '2024-05-23', business_id: 'BIZ-0124' },
-  { id: '3', type: 'fraud', user: 'jdoe_fake', subject: 'Account created to spam reviews', description: 'This account was created last week and has posted 12 negative reviews on the same businesses.', status: 'open', priority: 'critical', created: '2024-05-22' },
-  { id: '4', type: 'receipt', user: 'Aaliyah Brown', subject: 'Receipt rejected incorrectly', description: 'My receipt was rejected for "duplicate" but I have never submitted this receipt before. This was my first submission.', status: 'resolved', priority: 'low', created: '2024-05-20' },
-];
+interface Dispute {
+  id: string;
+  type: string;
+  subject: string;
+  description: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  receipt_id?: string;
+  review_id?: string;
+  business_id?: string;
+  assigned_to?: string;
+  resolution_note?: string;
+  resolved_at?: string;
+  profiles?: { display_name?: string; email?: string } | null;
+  receipts?: { merchant_name?: string; amount?: number } | null;
+}
 
 const PRIORITY_STYLES: Record<string, string> = {
   critical: 'bg-red-900/40 text-red-400',
@@ -28,26 +40,75 @@ const TYPE_ICONS: Record<string, string> = {
   receipt: '🧾',
   review: '⭐',
   fraud: '🚨',
+  points: '💰',
+  account: '👤',
   other: '❓',
 };
 
 export default function DisputesPage() {
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedDispute, setSelectedDispute] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const filtered = MOCK_DISPUTES.filter(d =>
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    fetchDisputes();
+  }, []);
+
+  async function fetchDisputes() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('disputes')
+      .select('*, profiles!user_id(display_name, email), receipts(merchant_name, amount)')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!error && data) {
+      setDisputes(data as Dispute[]);
+    }
+    setLoading(false);
+  }
+
+  async function updateDisputeStatus(id: string, status: string, resolutionNote?: string) {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/disputes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, resolution_note: resolutionNote }),
+      });
+      if (res.ok) {
+        setDisputes(prev =>
+          prev.map(d => d.id === id ? { ...d, status, resolution_note: resolutionNote } : d)
+        );
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  const filtered = disputes.filter(d =>
     statusFilter === 'All' || d.status === statusFilter.toLowerCase()
   );
 
-  const selected = MOCK_DISPUTES.find(d => d.id === selectedDispute);
+  const selected = disputes.find(d => d.id === selectedDispute);
 
   const stats = {
-    open: MOCK_DISPUTES.filter(d => d.status === 'open').length,
-    investigating: MOCK_DISPUTES.filter(d => d.status === 'investigating').length,
-    resolved: MOCK_DISPUTES.filter(d => d.status === 'resolved').length,
-    critical: MOCK_DISPUTES.filter(d => d.priority === 'critical').length,
+    open: disputes.filter(d => d.status === 'open').length,
+    investigating: disputes.filter(d => d.status === 'investigating').length,
+    resolved: disputes.filter(d => d.status === 'resolved').length,
+    critical: disputes.filter(d => d.priority === 'critical').length,
   };
+
+  const getUserLabel = (d: Dispute) => d.profiles?.display_name ?? d.profiles?.email ?? 'Unknown User';
+  const getCreatedLabel = (d: Dispute) => d.created_at ? new Date(d.created_at).toLocaleDateString() : '';
 
   return (
     <div className="space-y-6">
@@ -86,93 +147,135 @@ export default function DisputesPage() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Dispute list */}
-        <div className="space-y-3">
-          {filtered.map(dispute => (
-            <button
-              key={dispute.id}
-              onClick={() => setSelectedDispute(dispute.id === selectedDispute ? null : dispute.id)}
-              className={`w-full text-left bg-slate-800 rounded-xl border p-4 transition-all ${
-                selectedDispute === dispute.id ? 'border-green-600' : 'border-slate-700 hover:border-slate-500'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{TYPE_ICONS[dispute.type]}</span>
-                  <div>
-                    <p className="font-semibold text-gray-200 text-sm">{dispute.subject}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{dispute.user} · {dispute.created}</p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${PRIORITY_STYLES[dispute.priority]}`}>
-                    {dispute.priority}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLES[dispute.status]}`}>
-                    {dispute.status}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2 line-clamp-2">{dispute.description}</p>
-            </button>
-          ))}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={32} className="animate-spin text-green-500" />
         </div>
-
-        {/* Dispute detail */}
-        {selected ? (
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-5 h-fit">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="font-bold text-gray-100">{selected.subject}</h3>
-                <p className="text-sm text-gray-400 mt-0.5">{selected.user} · {selected.created}</p>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Dispute list */}
+          <div className="space-y-3">
+            {filtered.length === 0 ? (
+              <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center text-gray-500">
+                No disputes found
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_STYLES[selected.status]}`}>
-                {selected.status}
-              </span>
-            </div>
-
-            <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-              <p className="text-sm text-gray-300 leading-relaxed">{selected.description}</p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-2 mb-4">
-              <button className="flex items-center gap-1 px-3 py-2 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-semibold">
-                <CheckCircle size={14} /> Resolve
-              </button>
-              <button className="flex items-center gap-1 px-3 py-2 bg-yellow-700/50 hover:bg-yellow-700 text-yellow-300 rounded-lg text-xs font-semibold">
-                <AlertCircle size={14} /> Investigate
-              </button>
-              <button className="flex items-center gap-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-gray-200 rounded-lg text-xs font-semibold">
-                <XCircle size={14} /> Close
-              </button>
-            </div>
-
-            {/* Reply */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-2">Reply to User</label>
-              <textarea
-                value={replyText}
-                onChange={e => setReplyText(e.target.value)}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-sm text-gray-200 resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                rows={3}
-                placeholder="Type your response..."
-              />
-              <button className="mt-2 flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 text-white rounded-lg text-sm font-semibold">
-                <MessageSquare size={14} /> Send Reply
-              </button>
-            </div>
+            ) : (
+              filtered.map(dispute => (
+                <button
+                  key={dispute.id}
+                  onClick={() => setSelectedDispute(dispute.id === selectedDispute ? null : dispute.id)}
+                  className={`w-full text-left bg-slate-800 rounded-xl border p-4 transition-all ${
+                    selectedDispute === dispute.id ? 'border-green-600' : 'border-slate-700 hover:border-slate-500'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{TYPE_ICONS[dispute.type] ?? '❓'}</span>
+                      <div>
+                        <p className="font-semibold text-gray-200 text-sm">{dispute.subject}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{getUserLabel(dispute)} · {getCreatedLabel(dispute)}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${PRIORITY_STYLES[dispute.priority] ?? 'bg-slate-600 text-gray-300'}`}>
+                        {dispute.priority}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLES[dispute.status] ?? 'bg-slate-700 text-gray-500'}`}>
+                        {dispute.status}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">{dispute.description}</p>
+                </button>
+              ))
+            )}
           </div>
-        ) : (
-          <div className="bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center p-12 text-gray-600">
-            <div className="text-center">
-              <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Select a dispute to review</p>
+
+          {/* Dispute detail */}
+          {selected ? (
+            <div className="bg-slate-800 rounded-xl border border-slate-700 p-5 h-fit">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-gray-100">{selected.subject}</h3>
+                  <p className="text-sm text-gray-400 mt-0.5">{getUserLabel(selected)} · {getCreatedLabel(selected)}</p>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${STATUS_STYLES[selected.status] ?? 'bg-slate-700 text-gray-500'}`}>
+                  {selected.status}
+                </span>
+              </div>
+
+              <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-300 leading-relaxed">{selected.description}</p>
+              </div>
+
+              {selected.receipts && (
+                <div className="bg-slate-700/30 rounded-lg px-4 py-2 mb-4 text-xs text-gray-400">
+                  Receipt: {selected.receipts.merchant_name}
+                  {selected.receipts.amount !== undefined ? ` · $${selected.receipts.amount.toFixed(2)}` : ''}
+                </div>
+              )}
+
+              {selected.resolution_note && (
+                <div className="bg-green-900/20 border border-green-800/40 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-semibold text-green-400 mb-1">Resolution Note</p>
+                  <p className="text-sm text-gray-300">{selected.resolution_note}</p>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  disabled={actionLoading || selected.status === 'resolved'}
+                  onClick={() => updateDisputeStatus(selected.id, 'resolved', replyText || undefined)}
+                  className="flex items-center gap-1 px-3 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg text-xs font-semibold"
+                >
+                  <CheckCircle size={14} /> Resolve
+                </button>
+                <button
+                  disabled={actionLoading || selected.status === 'investigating'}
+                  onClick={() => updateDisputeStatus(selected.id, 'investigating')}
+                  className="flex items-center gap-1 px-3 py-2 bg-yellow-700/50 hover:bg-yellow-700 disabled:opacity-50 text-yellow-300 rounded-lg text-xs font-semibold"
+                >
+                  <AlertCircle size={14} /> Investigate
+                </button>
+                <button
+                  disabled={actionLoading || selected.status === 'closed'}
+                  onClick={() => updateDisputeStatus(selected.id, 'closed')}
+                  className="flex items-center gap-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 text-gray-200 rounded-lg text-xs font-semibold"
+                >
+                  <XCircle size={14} /> Close
+                </button>
+              </div>
+
+              {/* Reply / resolution note */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-2">Resolution Note / Reply to User</label>
+                <textarea
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-sm text-gray-200 resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows={3}
+                  placeholder="Type your response..."
+                />
+                <button
+                  disabled={actionLoading || !replyText.trim()}
+                  onClick={() => updateDisputeStatus(selected.id, 'resolved', replyText)}
+                  className="mt-2 flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold"
+                >
+                  <MessageSquare size={14} /> Send Reply &amp; Resolve
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center p-12 text-gray-600">
+              <div className="text-center">
+                <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Select a dispute to review</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
