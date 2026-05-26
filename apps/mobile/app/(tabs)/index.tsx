@@ -2,7 +2,7 @@
 // Home / Discovery Feed
 // =============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,15 +24,8 @@ import { PointsDisplay } from '../../components/ui/PointsDisplay';
 import { Avatar } from '../../components/ui/Avatar';
 import { Colors, Spacing, Radius, FontSize, FontWeight, Shadows } from '../../lib/theme';
 import { TierColors } from '../../lib/theme';
-
-// Mock leaderboard data — swap for real Supabase query
-const MOCK_LEADERBOARD = [
-  { rank: 1, userId: '1', displayName: 'Maria G.', totalPoints: 45200, tier: 'legend' },
-  { rank: 2, userId: '2', displayName: 'James T.', totalPoints: 38100, tier: 'platinum' },
-  { rank: 3, userId: '3', displayName: 'Aisha K.', totalPoints: 31500, tier: 'platinum' },
-  { rank: 4, userId: '4', displayName: 'Devon M.', totalPoints: 24700, tier: 'gold' },
-  { rank: 5, userId: '5', displayName: 'Sofia R.', totalPoints: 18300, tier: 'gold' },
-];
+import { supabase } from '../../lib/supabase';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 interface QuickActionProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -53,37 +46,116 @@ function QuickAction({ icon, label, color, bg, onPress }: QuickActionProps) {
   );
 }
 
+interface LeaderboardEntryDisplay {
+  rank: number;
+  userId: string;
+  displayName: string;
+  totalPoints: number;
+  tier: string;
+}
+
+interface UpcomingEvent {
+  id: string;
+  title: string;
+  start_at: string;
+  address: string | null;
+  businesses: { name: string } | null;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const { locationLabel, requestPermission, hasPermission } = useLocation();
   const { businesses, isLoading: bizLoading, refetch } = useBusinesses({ searchQuery: '' });
   const [refreshing, setRefreshing] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDisplay[]>([]);
+  const [currentUserRank, setCurrentUserRank] = useState<number | undefined>(undefined);
+  const [impactStats, setImpactStats] = useState({
+    localDollarsThisMonth: 0,
+    businessesSupported: 0,
+    localBusinessCount: 0,
+    communityOwnedCount: 0,
+    streakDays: 0,
+  });
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
 
   useEffect(() => {
-    if (!hasPermission) {
-      requestPermission();
-    }
+    if (!hasPermission) requestPermission();
   }, []);
+
+  const loadRealData = useCallback(async () => {
+    const now = new Date();
+    const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const [lbResult, impactResult, eventsResult] = await Promise.all([
+      supabase
+        .from('leaderboard_entries')
+        .select('rank, score, user_id, profiles!user_id(display_name, tier)')
+        .eq('period', 'monthly')
+        .eq('category', 'spending')
+        .order('rank', { ascending: true })
+        .limit(10),
+      user ? supabase
+        .from('local_impact_snapshots')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('period_start', monthStart)
+        .lte('period_end', monthEnd)
+        .maybeSingle() : Promise.resolve({ data: null }),
+      supabase
+        .from('events')
+        .select('id, title, start_at, address, businesses(name)')
+        .gte('start_at', now.toISOString())
+        .order('start_at', { ascending: true })
+        .limit(3),
+    ]);
+
+    if (lbResult.data) {
+      const entries = lbResult.data.map((e: any) => ({
+        rank: e.rank,
+        userId: e.user_id,
+        displayName: e.profiles?.display_name ?? 'User',
+        totalPoints: e.score ?? 0,
+        tier: e.profiles?.tier ?? 'bronze',
+      }));
+      setLeaderboard(entries);
+      if (user) {
+        const myEntry = lbResult.data.find((e: any) => e.user_id === user.id);
+        if (myEntry) setCurrentUserRank(myEntry.rank);
+      }
+    }
+
+    if (impactResult.data) {
+      const s = impactResult.data;
+      setImpactStats({
+        localDollarsThisMonth: Number(s.dollars_spent_local ?? 0),
+        businessesSupported: s.businesses_supported ?? 0,
+        localBusinessCount: s.businesses_supported ?? 0,
+        communityOwnedCount: s.community_businesses_supported ?? 0,
+        streakDays: 0,
+      });
+    }
+
+    if (eventsResult.data) {
+      setUpcomingEvents(eventsResult.data as UpcomingEvent[]);
+    }
+  }, [profile?.id]);
+
+  useEffect(() => {
+    loadRealData();
+  }, [loadRealData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    refetch();
+    await Promise.all([refetch(), loadRealData()]);
     setRefreshing(false);
   };
 
   const tierInfo = profile ? TierColors[profile.tier] : TierColors['bronze'];
   const featuredBusinesses = businesses.filter((b) => b.is_featured).slice(0, 10);
   const localBusinesses = businesses.filter((b) => b.is_local_owned).slice(0, 10);
-
-  // Mock impact stats — swap with real aggregated query
-  const impactStats = {
-    localDollarsThisMonth: 847,
-    businessesSupported: 12,
-    localBusinessCount: 8,
-    communityOwnedCount: 4,
-    streakDays: 7,
-  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -187,28 +259,60 @@ export default function HomeScreen() {
         )}
 
         {/* Leaderboard */}
-        <View style={styles.sectionPadded}>
-          <LeaderboardCard
-            entries={MOCK_LEADERBOARD}
-            currentUserRank={23}
-            onViewAll={() => router.push('/leaderboard')}
-          />
-        </View>
+        {leaderboard.length > 0 && (
+          <View style={styles.sectionPadded}>
+            <LeaderboardCard
+              entries={leaderboard}
+              currentUserRank={currentUserRank}
+              onViewAll={() => router.push('/leaderboard')}
+            />
+          </View>
+        )}
 
-        {/* Upcoming events teaser */}
+        {/* Upcoming events */}
         <View style={styles.sectionPadded}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Upcoming Events</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/events')}>
               <Text style={styles.seeAll}>Browse All</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.eventPlaceholder}>
-            <Ionicons name="calendar-outline" size={32} color={Colors.textTertiary} />
-            <Text style={styles.eventPlaceholderText}>
-              Follow local businesses to see their upcoming events here.
-            </Text>
-          </View>
+          {upcomingEvents.length === 0 ? (
+            <View style={styles.eventPlaceholder}>
+              <Ionicons name="calendar-outline" size={32} color={Colors.textTertiary} />
+              <Text style={styles.eventPlaceholderText}>
+                No upcoming events yet. Check back soon!
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.eventsList}>
+              {upcomingEvents.map(event => (
+                <TouchableOpacity
+                  key={event.id}
+                  style={styles.eventRow}
+                  onPress={() => router.push(`/events/${event.id}`)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.eventDateBox}>
+                    <Text style={styles.eventMonth}>
+                      {new Date(event.start_at).toLocaleDateString('en-US', { month: 'short' })}
+                    </Text>
+                    <Text style={styles.eventDay}>
+                      {new Date(event.start_at).getDate()}
+                    </Text>
+                  </View>
+                  <View style={styles.eventInfo}>
+                    <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
+                    <Text style={styles.eventBusiness} numberOfLines={1}>
+                      {event.businesses?.name ?? ''}
+                      {event.address ? ` · ${event.address}` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -292,6 +396,51 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textTertiary,
     textAlign: 'center',
-    lineHeight: 22,
+  },
+  eventsList: {
+    gap: Spacing.sm,
+  },
+  eventRow: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  eventDateBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eventMonth: {
+    fontSize: FontSize.xxs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.primary,
+    textTransform: 'uppercase',
+  },
+  eventDay: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.primary,
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+  eventBusiness: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
 });
+

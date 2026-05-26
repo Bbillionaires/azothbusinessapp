@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
 import type { Receipt, ReceiptStatus } from '@/lib/supabase';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Download,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
@@ -29,47 +30,47 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'resubmission_requested', label: 'Resubmission Requested' },
 ];
 
-// Mock data for demonstration
-function generateMockReceipts(): Receipt[] {
-  const merchants = ['Sunrise Bakery', 'Green Valley Market', 'The Local Diner', 'Coffee Corner', 'Elm St. Pharmacy'];
-  const statuses: ReceiptStatus[] = ['pending', 'pending', 'pending', 'flagged', 'approved', 'rejected'];
-  const flags = ['duplicate_hash', 'amount_mismatch', 'reused_image', 'suspicious_merchant', 'multiple_submissions'];
-
-  return Array.from({ length: 50 }, (_, i) => {
-    const fraudScore = Math.floor(Math.random() * 100);
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const nFlags = fraudScore > 50 ? Math.floor(Math.random() * 3) + 1 : 0;
-    return {
-      id: `receipt-${i + 1}`,
-      user_id: `user-${Math.floor(Math.random() * 100)}`,
-      business_id: `biz-${Math.floor(Math.random() * 50)}`,
-      amount: +(Math.random() * 200 + 5).toFixed(2),
-      merchant_name: merchants[Math.floor(Math.random() * merchants.length)],
-      receipt_date: new Date(Date.now() - Math.random() * 7 * 86400000).toISOString(),
-      submitted_at: new Date(Date.now() - Math.random() * 3 * 86400000).toISOString(),
-      status,
-      fraud_score: fraudScore,
-      fraud_flags: Array.from({ length: nFlags }, () => flags[Math.floor(Math.random() * flags.length)]),
-    };
-  });
-}
-
-const MOCK_RECEIPTS = generateMockReceipts();
-
 export default function ReceiptsPage() {
   const router = useRouter();
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [minFraudScore, setMinFraudScore] = useState('');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fetchLoading, setFetchLoading] = useState(true);
 
-  const supabase = createSupabaseBrowserClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  // Filter logic
-  const filteredReceipts = MOCK_RECEIPTS.filter((r) => {
-    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+  useEffect(() => {
+    async function fetchReceipts() {
+      setFetchLoading(true);
+      let query = supabase
+        .from('receipts')
+        .select('id, user_id, business_id, amount, merchant_name, receipt_date, submitted_at, status, fraud_score, fraud_flags, image_url, profiles!user_id(display_name, email)')
+        .order('submitted_at', { ascending: false })
+        .limit(200);
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        setReceipts(data as unknown as Receipt[]);
+      }
+      setFetchLoading(false);
+    }
+    fetchReceipts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
+
+  // Client-side filter for search and fraud score
+  const filteredReceipts = receipts.filter((r) => {
     if (minFraudScore && r.fraud_score < parseInt(minFraudScore)) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -86,6 +87,10 @@ export default function ReceiptsPage() {
         .from('receipts')
         .update({ status: newStatus })
         .in('id', selectedIds);
+      // Optimistic update
+      setReceipts(prev => prev.map(r =>
+        selectedIds.includes(r.id) ? { ...r, status: newStatus as ReceiptStatus } : r
+      ));
       setSelectedIds([]);
     } finally {
       setLoading(false);
@@ -152,6 +157,7 @@ export default function ReceiptsPage() {
               label: 'Approve',
               icon: CheckCircle,
               onClick: async () => {
+                setReceipts(prev => prev.map(x => x.id === r.id ? { ...x, status: 'approved' as ReceiptStatus } : x));
                 await supabase.from('receipts').update({ status: 'approved' }).eq('id', r.id);
               },
               disabled: r.status === 'approved',
@@ -161,6 +167,7 @@ export default function ReceiptsPage() {
               icon: XCircle,
               variant: 'danger',
               onClick: async () => {
+                setReceipts(prev => prev.map(x => x.id === r.id ? { ...x, status: 'rejected' as ReceiptStatus } : x));
                 await supabase.from('receipts').update({ status: 'rejected' }).eq('id', r.id);
               },
               disabled: r.status === 'rejected',
@@ -170,6 +177,7 @@ export default function ReceiptsPage() {
               icon: RefreshCw,
               variant: 'warning',
               onClick: async () => {
+                setReceipts(prev => prev.map(x => x.id === r.id ? { ...x, status: 'resubmission_requested' as ReceiptStatus } : x));
                 await supabase.from('receipts').update({ status: 'resubmission_requested' }).eq('id', r.id);
               },
             },
@@ -268,15 +276,22 @@ export default function ReceiptsPage() {
       </div>
 
       {/* Table */}
-      <DataTable
-        data={filteredReceipts}
-        columns={columns}
-        selectable
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        onRowClick={(r) => router.push(`/receipts/${r.id}`)}
-        emptyMessage="No receipts match the current filters."
-      />
+      {fetchLoading ? (
+        <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Loading receipts...</span>
+        </div>
+      ) : (
+        <DataTable
+          data={filteredReceipts}
+          columns={columns}
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          onRowClick={(r) => router.push(`/receipts/${r.id}`)}
+          emptyMessage="No receipts match the current filters."
+        />
+      )}
 
       {/* Bulk action dialog */}
       <ConfirmDialog

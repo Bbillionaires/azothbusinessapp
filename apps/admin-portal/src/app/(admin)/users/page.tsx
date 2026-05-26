@@ -1,15 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, UserCheck, ShieldOff, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, UserCheck, ShieldOff, Eye, Loader2 } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
 
-const MOCK_USERS = [
-  { id: '1', name: 'Marcus Johnson', email: 'marcus@example.com', tier: 'gold', role: 'consumer', points: 4250, receipts: 47, reviews: 12, referrals: 8, status: 'active', joined: '2023-02-14', is_legend: false },
-  { id: '2', name: 'Tanisha Williams', email: 'tanisha@example.com', tier: 'legend', role: 'consumer', points: 18500, receipts: 203, reviews: 67, referrals: 45, status: 'active', joined: '2022-08-01', is_legend: true },
-  { id: '3', name: 'Jerome Davis', email: 'jerome@example.com', tier: 'silver', role: 'consumer', points: 820, receipts: 12, reviews: 3, referrals: 2, status: 'active', joined: '2024-01-10' },
-  { id: '4', name: 'Aaliyah Brown', email: 'aaliyah@example.com', tier: 'bronze', role: 'consumer', points: 150, receipts: 3, reviews: 1, referrals: 0, status: 'flagged', joined: '2024-04-20' },
-  { id: '5', name: 'DeShawn Martin', email: 'deshawn@example.com', tier: 'platinum', role: 'consumer', points: 9200, receipts: 98, reviews: 34, referrals: 22, status: 'active', joined: '2022-11-15' },
-];
+interface UserRow {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  role: string | null;
+  tier: string | null;
+  points_balance: number | null;
+  is_legend: boolean | null;
+  status: string | null;
+  created_at: string | null;
+}
 
 const TIER_STYLES: Record<string, string> = {
   bronze: 'bg-yellow-900/30 text-yellow-500',
@@ -19,18 +24,70 @@ const TIER_STYLES: Record<string, string> = {
   legend: 'bg-green-900/30 text-green-300',
 };
 
+function getInitials(name: string | null): string {
+  if (!name) return '?';
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
 export default function UsersPage() {
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const filtered = MOCK_USERS.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchTier = tierFilter === 'All' || u.tier === tierFilter.toLowerCase();
-    const matchStatus = statusFilter === 'All' || u.status === statusFilter.toLowerCase();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    async function fetchUsers() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, email, role, tier, points_balance, is_legend, status, created_at')
+        .not('role', 'in', '("admin_staff","admin_manager","super_admin")')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (!error && data) {
+        setUsers(data as UserRow[]);
+      }
+      setLoading(false);
+    }
+    fetchUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSuspend(userId: string) {
+    // Optimistic update
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'suspended' } : u));
+    await supabase
+      .from('profiles')
+      .update({ status: 'suspended' })
+      .eq('id', userId);
+  }
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const filtered = users.filter(u => {
+    const name = u.display_name ?? '';
+    const email = u.email ?? '';
+    const matchSearch = name.toLowerCase().includes(search.toLowerCase()) ||
+      email.toLowerCase().includes(search.toLowerCase());
+    const matchTier = tierFilter === 'All' || (u.tier ?? '') === tierFilter.toLowerCase();
+    const matchStatus = statusFilter === 'All' || (u.status ?? '') === statusFilter.toLowerCase();
     return matchSearch && matchTier && matchStatus;
   });
+
+  const stats = [
+    { label: 'Total Users', value: users.length },
+    { label: 'Legends', value: users.filter(u => u.is_legend).length },
+    { label: 'Gold+', value: users.filter(u => ['gold', 'platinum', 'legend'].includes(u.tier ?? '')).length },
+    { label: 'Flagged', value: users.filter(u => u.status === 'flagged').length },
+    { label: 'New (30d)', value: users.filter(u => u.created_at && new Date(u.created_at) >= thirtyDaysAgo).length },
+  ];
 
   return (
     <div className="space-y-6">
@@ -41,13 +98,7 @@ export default function UsersPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-5 gap-4">
-        {[
-          { label: 'Total Users', value: MOCK_USERS.length },
-          { label: 'Legends', value: MOCK_USERS.filter(u => u.is_legend).length },
-          { label: 'Gold+', value: MOCK_USERS.filter(u => ['gold','platinum','legend'].includes(u.tier)).length },
-          { label: 'Flagged', value: MOCK_USERS.filter(u => u.status === 'flagged').length },
-          { label: 'New (30d)', value: 2 },
-        ].map((s, i) => (
+        {stats.map((s, i) => (
           <div key={i} className="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
             <div className="text-2xl font-bold text-gray-100">{s.value}</div>
             <div className="text-xs text-gray-400 mt-1">{s.label}</div>
@@ -84,71 +135,92 @@ export default function UsersPage() {
 
       {/* Table */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-700">
-                {['User', 'Tier', 'Points', 'Receipts', 'Reviews', 'Referrals', 'Status', 'Joined', 'Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide first:pl-6 last:pr-6 last:text-right">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(user => (
-                <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                  <td className="pl-6 pr-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-gray-300">
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-200 flex items-center gap-1">
-                          {user.name}
-                          {user.is_legend && <span className="text-xs">👑</span>}
-                        </div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${TIER_STYLES[user.tier]}`}>
-                      {user.tier}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-green-400">{user.points.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-gray-300">{user.receipts}</td>
-                  <td className="px-4 py-3 text-gray-300">{user.reviews}</td>
-                  <td className="px-4 py-3 text-gray-300">{user.referrals}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                      user.status === 'active' ? 'bg-green-900/40 text-green-400' :
-                      user.status === 'flagged' ? 'bg-yellow-900/40 text-yellow-400' :
-                      'bg-red-900/40 text-red-400'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{user.joined}</td>
-                  <td className="pl-4 pr-6 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="text-gray-400 hover:text-gray-200 p-1" title="View">
-                        <Eye size={14} />
-                      </button>
-                      <button className="text-gray-400 hover:text-green-400 p-1" title="Verify">
-                        <UserCheck size={14} />
-                      </button>
-                      <button className="text-gray-400 hover:text-red-400 p-1" title="Suspend">
-                        <ShieldOff size={14} />
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <Loader2 size={20} className="animate-spin" />
+            <span className="text-sm">Loading users...</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-gray-500 text-sm">
+            No users found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  {['User', 'Tier', 'Points', 'Status', 'Joined', 'Actions'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide first:pl-6 last:pr-6 last:text-right">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map(user => (
+                  <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                    <td className="pl-6 pr-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-gray-300">
+                          {getInitials(user.display_name)}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-200 flex items-center gap-1">
+                            {user.display_name ?? 'Unknown'}
+                            {user.is_legend && <span className="text-xs">👑</span>}
+                          </div>
+                          <div className="text-xs text-gray-500">{user.email ?? '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.tier ? (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${TIER_STYLES[user.tier] ?? 'bg-slate-700 text-gray-400'}`}>
+                          {user.tier}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-green-400">
+                      {(user.points_balance ?? 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                        user.status === 'active' ? 'bg-green-900/40 text-green-400' :
+                        user.status === 'flagged' ? 'bg-yellow-900/40 text-yellow-400' :
+                        'bg-red-900/40 text-red-400'
+                      }`}>
+                        {user.status ?? 'unknown'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="pl-4 pr-6 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="text-gray-400 hover:text-gray-200 p-1" title="View">
+                          <Eye size={14} />
+                        </button>
+                        <button className="text-gray-400 hover:text-green-400 p-1" title="Verify">
+                          <UserCheck size={14} />
+                        </button>
+                        <button
+                          className="text-gray-400 hover:text-red-400 p-1"
+                          title="Suspend"
+                          onClick={() => handleSuspend(user.id)}
+                          disabled={user.status === 'suspended'}
+                        >
+                          <ShieldOff size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

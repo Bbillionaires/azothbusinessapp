@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
 import type { Receipt } from '@/lib/supabase';
 import ReceiptImageViewer from '@/components/receipts/ReceiptImageViewer';
 import FraudScoreBadge from '@/components/receipts/FraudScoreBadge';
@@ -26,47 +26,16 @@ import {
   BarChart2,
 } from 'lucide-react';
 
-// Mock receipt for UI demonstration
-const MOCK_RECEIPT: Receipt = {
-  id: 'receipt-demo',
-  user_id: 'user-123abc',
-  business_id: 'biz-456def',
-  amount: 47.85,
-  merchant_name: 'Sunrise Bakery',
-  receipt_date: new Date(Date.now() - 86400000).toISOString(),
-  submitted_at: new Date(Date.now() - 7200000).toISOString(),
-  status: 'pending',
-  fraud_score: 62,
-  fraud_flags: ['duplicate_hash', 'amount_mismatch'],
-  image_url: undefined,
-  ocr_data: {
-    merchant: 'SUNRISE BAKERY',
-    date: '2026-05-24',
-    amount: 47.85,
-    subtotal: 44.50,
-    tax: 3.35,
-    items: [
-      { name: 'Sourdough Loaf', price: 12.00 },
-      { name: 'Croissant x3', price: 8.50 },
-      { name: 'Coffee (Large)', price: 6.00 },
-      { name: 'Quiche Slice', price: 9.00 },
-      { name: 'Fruit Tart', price: 9.00 },
-    ],
-  },
-  receipt_hash: 'sha256:a3f4b2c1d8e9f07a12b3c4d5e6f7a8b9',
-  points_issued: undefined,
-  review_notes: '',
-};
-
-// Mock user history
-const MOCK_USER_HISTORY = {
-  total_receipts: 47,
-  approved_receipts: 39,
-  rejected_receipts: 5,
-  fraud_receipts: 3,
-  approval_rate: 83,
-  total_points: 12_450,
-};
+interface UserHistory {
+  total_receipts: number;
+  approved_receipts: number;
+  rejected_receipts: number;
+  fraud_receipts: number;
+  approval_rate: number;
+  total_points: number;
+  display_name?: string;
+  email?: string;
+}
 
 type ActionType = 'approve' | 'reject' | 'fraud' | 'resubmit';
 
@@ -74,29 +43,65 @@ export default function ReceiptDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [userHistory, setUserHistory] = useState<UserHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<ActionType | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [notes, setNotes] = useState('');
 
-  const supabase = createSupabaseBrowserClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     async function loadReceipt() {
       setLoading(true);
-      const { data } = await supabase
-        .from('receipts')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-      setReceipt((data as Receipt) ?? MOCK_RECEIPT);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from('receipts')
+          .select('*, profiles!user_id(display_name, email, tier, points_balance), businesses(name, city, state)')
+          .eq('id', params.id as string)
+          .single();
+
+        if (!error && data) {
+          setReceipt(data as unknown as Receipt);
+
+          // Load user receipt history
+          if (data.user_id) {
+            const { data: histData } = await supabase
+              .from('receipts')
+              .select('status, fraud_score')
+              .eq('user_id', data.user_id);
+
+            if (histData) {
+              const total = histData.length;
+              const approved = histData.filter((r: { status: string }) => r.status === 'approved').length;
+              const rejected = histData.filter((r: { status: string }) => r.status === 'rejected').length;
+              const flagged = histData.filter((r: { status: string; fraud_score: number }) => r.status === 'flagged' || r.fraud_score >= 90).length;
+              const profile = (data as unknown as Record<string, unknown>).profiles as { display_name?: string; email?: string; points_balance?: number } | null;
+              setUserHistory({
+                total_receipts: total,
+                approved_receipts: approved,
+                rejected_receipts: rejected,
+                fraud_receipts: flagged,
+                approval_rate: total > 0 ? Math.round((approved / total) * 100) : 0,
+                total_points: profile?.points_balance ?? 0,
+                display_name: profile?.display_name ?? undefined,
+                email: profile?.email ?? undefined,
+              });
+            }
+          }
+        }
+      } catch {
+        // silently fail — receipt stays null
+      } finally {
+        setLoading(false);
+      }
     }
-    loadReceipt().catch(() => {
-      setReceipt(MOCK_RECEIPT);
-      setLoading(false);
-    });
-  }, [params.id, supabase]);
+    loadReceipt();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
 
   async function executeAction(type: ActionType) {
     if (!receipt) return;
@@ -318,22 +323,29 @@ export default function ReceiptDetailPage() {
             <h2 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
               <User className="w-4 h-4 text-blue-400" />
               User History
+              {userHistory?.display_name && (
+                <span className="text-xs text-slate-400 font-normal ml-1">— {userHistory.display_name}</span>
+              )}
             </h2>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: 'Total Receipts', value: MOCK_USER_HISTORY.total_receipts, color: 'text-slate-200' },
-                { label: 'Approved', value: MOCK_USER_HISTORY.approved_receipts, color: 'text-green-400' },
-                { label: 'Rejected', value: MOCK_USER_HISTORY.rejected_receipts, color: 'text-red-400' },
-                { label: 'Fraud', value: MOCK_USER_HISTORY.fraud_receipts, color: 'text-orange-400' },
-                { label: 'Approval Rate', value: `${MOCK_USER_HISTORY.approval_rate}%`, color: 'text-slate-200' },
-                { label: 'Total Points', value: MOCK_USER_HISTORY.total_points.toLocaleString(), color: 'text-amber-400' },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center bg-slate-800/50 rounded-lg p-3">
-                  <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
-                </div>
-              ))}
-            </div>
+            {userHistory ? (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Total Receipts', value: userHistory.total_receipts, color: 'text-slate-200' },
+                  { label: 'Approved', value: userHistory.approved_receipts, color: 'text-green-400' },
+                  { label: 'Rejected', value: userHistory.rejected_receipts, color: 'text-red-400' },
+                  { label: 'Fraud', value: userHistory.fraud_receipts, color: 'text-orange-400' },
+                  { label: 'Approval Rate', value: `${userHistory.approval_rate}%`, color: 'text-slate-200' },
+                  { label: 'Total Points', value: userHistory.total_points.toLocaleString(), color: 'text-amber-400' },
+                ].map((stat) => (
+                  <div key={stat.label} className="text-center bg-slate-800/50 rounded-lg p-3">
+                    <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No history data available.</p>
+            )}
           </div>
 
           {/* Review Notes */}

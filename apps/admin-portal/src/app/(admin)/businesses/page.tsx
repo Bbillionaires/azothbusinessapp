@@ -1,40 +1,80 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, Building2, ShieldCheck, MapPin, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Building2, MapPin, Star, Loader2 } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
 import { BusinessStatusBadge } from '../../../components/businesses/BusinessStatusBadge';
 import { VerificationActions } from '../../../components/businesses/VerificationActions';
 
-const MOCK_BUSINESSES = [
-  { id: '1', name: 'Greenwood Coffee Co.', category: 'Restaurant', city: 'Jacksonville', state: 'FL', status: 'active', verification_level: 'pro', rating: 4.8, reviews: 124, is_local_owned: true, is_community_owned: true, created_at: '2022-03-15' },
-  { id: '2', name: 'LaVilla Hair Studio', category: 'Beauty', city: 'Jacksonville', state: 'FL', status: 'active', verification_level: 'basic', rating: 4.5, reviews: 67, is_local_owned: true, is_community_owned: false, created_at: '2023-07-01' },
-  { id: '3', name: 'Northside Auto Repair', category: 'Services', city: 'Jacksonville', state: 'FL', status: 'pending', verification_level: 'none', rating: null, reviews: 0, is_local_owned: true, is_community_owned: false, created_at: '2024-05-20' },
-  { id: '4', name: 'Eastside Fitness Center', category: 'Fitness', city: 'Jacksonville', state: 'FL', status: 'suspended', verification_level: 'none', rating: 3.2, reviews: 18, is_local_owned: false, is_community_owned: false, created_at: '2021-11-10' },
-  { id: '5', name: 'Community Arts Collective', category: 'Entertainment', city: 'Jacksonville', state: 'FL', status: 'active', verification_level: 'elite', rating: 4.9, reviews: 203, is_local_owned: true, is_community_owned: true, created_at: '2018-06-22' },
-];
+interface BusinessRow {
+  id: string;
+  name: string | null;
+  category: string | null;
+  city: string | null;
+  state: string | null;
+  status: string | null;
+  verification_level: string | null;
+  is_local_owned: boolean | null;
+  is_community_owned: boolean | null;
+  created_at: string | null;
+}
 
 const STATUS_FILTERS = ['All', 'Active', 'Pending', 'Suspended'];
 const VERIFICATION_FILTERS = ['All', 'None', 'Basic', 'Pro', 'Elite', 'Community Trusted'];
 
 export default function BusinessesPage() {
+  const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [verifFilter, setVerifFilter] = useState('All');
-  const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null);
 
-  const filtered = MOCK_BUSINESSES.filter(b => {
-    const matchSearch = b.name.toLowerCase().includes(search.toLowerCase()) ||
-      b.city.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || b.status === statusFilter.toLowerCase();
-    const matchVerif = verifFilter === 'All' || b.verification_level === verifFilter.toLowerCase().replace(' ', '_');
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    async function fetchBusinesses() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('id, name, category, city, state, status, verification_level, is_local_owned, is_community_owned, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (!error && data) {
+        setBusinesses(data as BusinessRow[]);
+      }
+      setLoading(false);
+    }
+    fetchBusinesses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSuspend(id: string) {
+    // Optimistic update
+    setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: 'suspended' } : b));
+    await supabase
+      .from('businesses')
+      .update({ status: 'suspended' })
+      .eq('id', id);
+  }
+
+  const filtered = businesses.filter(b => {
+    const name = b.name ?? '';
+    const city = b.city ?? '';
+    const matchSearch = name.toLowerCase().includes(search.toLowerCase()) ||
+      city.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'All' || (b.status ?? '') === statusFilter.toLowerCase();
+    const matchVerif = verifFilter === 'All' || (b.verification_level ?? 'none') === verifFilter.toLowerCase().replace(' ', '_');
     return matchSearch && matchStatus && matchVerif;
   });
 
   const stats = {
-    total: MOCK_BUSINESSES.length,
-    active: MOCK_BUSINESSES.filter(b => b.status === 'active').length,
-    pending: MOCK_BUSINESSES.filter(b => b.status === 'pending').length,
-    suspended: MOCK_BUSINESSES.filter(b => b.status === 'suspended').length,
+    total: businesses.length,
+    active: businesses.filter(b => b.status === 'active').length,
+    pending: businesses.filter(b => b.status === 'pending').length,
+    suspended: businesses.filter(b => b.status === 'suspended').length,
   };
 
   return (
@@ -90,83 +130,84 @@ export default function BusinessesPage() {
 
       {/* Table */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-700">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Business</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Location</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Verification</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Rating</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Badges</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(biz => (
-                <tr key={biz.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-green-900 flex items-center justify-center">
-                        <Building2 size={16} className="text-green-400" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-100">{biz.name}</div>
-                        <div className="text-xs text-gray-500">{biz.category}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1 text-gray-400 text-sm">
-                      <MapPin size={13} />
-                      {biz.city}, {biz.state}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <BusinessStatusBadge status={biz.status} />
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                      biz.verification_level === 'elite' ? 'bg-yellow-900/50 text-yellow-400' :
-                      biz.verification_level === 'pro' ? 'bg-green-900/50 text-green-400' :
-                      biz.verification_level === 'basic' ? 'bg-slate-600 text-gray-300' :
-                      'bg-slate-700 text-gray-500'
-                    }`}>
-                      {biz.verification_level === 'none' ? 'Unverified' : biz.verification_level.charAt(0).toUpperCase() + biz.verification_level.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    {biz.rating ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star size={13} className="text-yellow-400 fill-yellow-400" />
-                        <span className="text-gray-200">{biz.rating}</span>
-                        <span className="text-gray-500">({biz.reviews})</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-600 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex gap-1">
-                      {biz.is_local_owned && <span title="Local Owned" className="text-sm">🏠</span>}
-                      {biz.is_community_owned && <span title="Community Owned" className="text-sm">🤝</span>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <VerificationActions
-                      businessId={biz.id}
-                      currentStatus={biz.status}
-                      onApprove={() => {}}
-                      onSuspend={() => {}}
-                      onView={() => {}}
-                    />
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <Loader2 size={20} className="animate-spin" />
+            <span className="text-sm">Loading businesses...</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-gray-500 text-sm">
+            No businesses found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Business</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Location</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Verification</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Badges</th>
+                  <th className="text-right px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map(biz => (
+                  <tr key={biz.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-green-900 flex items-center justify-center">
+                          <Building2 size={16} className="text-green-400" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-100">{biz.name ?? '—'}</div>
+                          <div className="text-xs text-gray-500">{biz.category ?? '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1 text-gray-400 text-sm">
+                        <MapPin size={13} />
+                        {biz.city ?? '—'}, {biz.state ?? '—'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <BusinessStatusBadge status={biz.status ?? 'pending'} />
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                        biz.verification_level === 'elite' ? 'bg-yellow-900/50 text-yellow-400' :
+                        biz.verification_level === 'pro' ? 'bg-green-900/50 text-green-400' :
+                        biz.verification_level === 'basic' ? 'bg-slate-600 text-gray-300' :
+                        'bg-slate-700 text-gray-500'
+                      }`}>
+                        {!biz.verification_level || biz.verification_level === 'none'
+                          ? 'Unverified'
+                          : biz.verification_level.charAt(0).toUpperCase() + biz.verification_level.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex gap-1">
+                        {biz.is_local_owned && <span title="Local Owned" className="text-sm">🏠</span>}
+                        {biz.is_community_owned && <span title="Community Owned" className="text-sm">🤝</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <VerificationActions
+                        businessId={biz.id}
+                        currentStatus={biz.status ?? 'pending'}
+                        onApprove={() => {}}
+                        onSuspend={() => handleSuspend(biz.id)}
+                        onView={() => {}}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
