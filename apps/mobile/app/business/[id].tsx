@@ -149,6 +149,14 @@ export default function BusinessDetailScreen() {
               </Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => router.push(`/review/write?business_id=${business.id}&business_name=${encodeURIComponent(business.name)}`)}
+            >
+              <Ionicons name="star-outline" size={18} color={THEME.colors.text} />
+              <Text style={styles.actionBtnText}>Review</Text>
+            </TouchableOpacity>
+
             {business.phone && (
               <TouchableOpacity
                 style={styles.actionBtn}
@@ -267,7 +275,10 @@ export default function BusinessDetailScreen() {
 
           {activeTab === 'Reviews' && (
             <View style={styles.reviewsSection}>
-              <TouchableOpacity style={styles.leaveReviewBtn}>
+              <TouchableOpacity
+                style={styles.leaveReviewBtn}
+                onPress={() => router.push(`/review/write?business_id=${business.id}&business_name=${encodeURIComponent(business.name)}`)}
+              >
                 <Ionicons name="star-outline" size={18} color="#fff" />
                 <Text style={styles.leaveReviewText}>Leave a Review</Text>
               </TouchableOpacity>

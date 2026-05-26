@@ -94,12 +94,16 @@ export default function MapScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Search bar overlay */}
       <View style={styles.searchOverlay}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search businesses near you..."
-          style={styles.searchBar}
-        />
+        <TouchableOpacity style={styles.searchBarPressable} onPress={() => router.push('/search')} activeOpacity={0.8}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search businesses near you..."
+            style={styles.searchBar}
+            editable={false}
+            pointerEvents="none"
+          />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.filterBtn, activeFilters.length > 0 && styles.filterBtnActive]}
           onPress={() => setShowFilters(true)}
@@ -263,6 +267,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     gap: 8,
   },
+  searchBarPressable: { flex: 1 },
   searchBar: { flex: 1 },
   filterBtn: {
     width: 44,
