@@ -54,6 +54,23 @@ Deno.serve(async (req: Request) => {
       tokens = (data ?? []).map((d: any) => d.fcm_token);
     }
 
+    // Persist in-app notifications for individual users
+    const targetUserIds: string[] = [];
+    if (body.user_id) targetUserIds.push(body.user_id);
+    if (body.user_ids) targetUserIds.push(...body.user_ids);
+
+    if (targetUserIds.length > 0) {
+      await serviceClient.from('notifications').insert(
+        targetUserIds.map(uid => ({
+          user_id: uid,
+          type: body.type,
+          title: body.title,
+          body: body.body,
+          data: body.data ?? {},
+        }))
+      );
+    }
+
     const results = { sent: 0, failed: 0, errors: [] as string[] };
 
     // Send to individual tokens

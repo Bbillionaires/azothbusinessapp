@@ -1,79 +1,130 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, MessageSquare, ThumbsUp, Flag } from 'lucide-react';
-
-const MOCK_REVIEWS = [
-  {
-    id: '1',
-    reviewer: 'Marcus J.',
-    tier: 'gold',
-    rating: 5,
-    title: 'Best local coffee shop in Jacksonville!',
-    body: 'Amazing coffee, even better community vibes. The staff knows every regular by name. This is exactly the kind of local business our community needs.',
-    date: '2024-05-15',
-    helpful_count: 12,
-    weight: 3,
-    is_community_legend: false,
-    photos: [],
-    response: null,
-  },
-  {
-    id: '2',
-    reviewer: 'Tanisha W.',
-    tier: 'legend',
-    rating: 5,
-    title: 'A true community landmark',
-    body: "I've been coming here for 8 years. This place has been a cornerstone of our neighborhood. They hire local, source local, and give back constantly.",
-    date: '2024-05-10',
-    helpful_count: 28,
-    weight: 10,
-    is_community_legend: true,
-    photos: [],
-    response: "Thank you Tanisha! You've been with us from the beginning. We love our community family!",
-  },
-  {
-    id: '3',
-    reviewer: 'Derek P.',
-    tier: 'bronze',
-    rating: 3,
-    title: 'Good food, slow service',
-    body: 'The drinks are great but waited 15 minutes during lunch rush. Would love to see more staff during peak hours.',
-    date: '2024-05-08',
-    helpful_count: 3,
-    weight: 1,
-    is_community_legend: false,
-    photos: [],
-    response: null,
-  },
-];
+import { useState, useEffect, useCallback } from 'react';
+import { Star, MessageSquare, ThumbsUp, Flag, Loader2 } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
 
 const TIER_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  bronze: { bg: '#FEF3C7', text: '#92400E', label: 'Bronze' },
-  silver: { bg: '#F1F5F9', text: '#475569', label: 'Silver' },
-  gold: { bg: '#FEF9C3', text: '#854D0E', label: 'Gold' },
+  bronze:   { bg: '#FEF3C7', text: '#92400E', label: 'Bronze' },
+  silver:   { bg: '#F1F5F9', text: '#475569', label: 'Silver' },
+  gold:     { bg: '#FEF9C3', text: '#854D0E', label: 'Gold' },
   platinum: { bg: '#F0F9FF', text: '#0C4A6E', label: 'Platinum' },
-  legend: { bg: '#F0FDF4', text: '#14532D', label: 'Legend' },
+  legend:   { bg: '#F0FDF4', text: '#14532D', label: 'Legend' },
 };
 
+const TIER_WEIGHT: Record<string, number> = {
+  bronze: 1, silver: 2, gold: 3, platinum: 5, legend: 10,
+};
+
+type Review = {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  tags: string[] | null;
+  status: string;
+  weighted_score: number;
+  helpful_count: number;
+  created_at: string;
+  reviewer_id: string;
+  profiles?: { display_name: string | null; tier: string | null } | null;
+  review_responses?: Array<{ id: string; body: string; created_at: string }>;
+};
+
+function useBusinessId() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  const [businessId, setBusinessId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+      setBusinessId(data?.id ?? null);
+    }
+    load();
+  }, []);
+
+  return { supabase, businessId };
+}
+
 export default function ReviewsPage() {
+  const { supabase, businessId } = useBusinessId();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [filterTrusted, setFilterTrusted] = useState(false);
 
-  const avgRating = MOCK_REVIEWS.reduce((s, r) => s + r.rating * r.weight, 0) /
-    MOCK_REVIEWS.reduce((s, r) => s + r.weight, 0);
+  useEffect(() => {
+    if (!businessId) return;
+    async function load() {
+      const { data } = await supabase
+        .from('reviews')
+        .select('*, profiles(display_name, tier), review_responses(id, body, created_at)')
+        .eq('business_id', businessId)
+        .eq('status', 'published')
+        .order('weighted_score', { ascending: false });
+      setReviews((data ?? []) as Review[]);
+      setLoading(false);
+    }
+    load();
+  }, [businessId]);
+
+  const submitReply = useCallback(async (reviewId: string) => {
+    if (!replyText.trim()) return;
+    setSubmitting(true);
+    const res = await fetch(`/api/reviews/${reviewId}/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: replyText.trim() }),
+    });
+    if (res.ok) {
+      setReviews(prev => prev.map(r =>
+        r.id === reviewId
+          ? { ...r, review_responses: [{ id: 'new', body: replyText.trim(), created_at: new Date().toISOString() }] }
+          : r
+      ));
+      setReplyingTo(null);
+      setReplyText('');
+    }
+    setSubmitting(false);
+  }, [replyText]);
+
+  const avgRating = reviews.length === 0 ? 0 :
+    reviews.reduce((s, r) => {
+      const w = TIER_WEIGHT[r.profiles?.tier ?? 'bronze'] ?? 1;
+      return s + r.rating * w;
+    }, 0) / reviews.reduce((s, r) => s + (TIER_WEIGHT[r.profiles?.tier ?? 'bronze'] ?? 1), 0);
 
   const ratingDist = [5, 4, 3, 2, 1].map(r => ({
     rating: r,
-    count: MOCK_REVIEWS.filter(rev => rev.rating === r).length,
-    pct: (MOCK_REVIEWS.filter(rev => rev.rating === r).length / MOCK_REVIEWS.length) * 100,
+    count: reviews.filter(rev => rev.rating === r).length,
+    pct: reviews.length === 0 ? 0 : (reviews.filter(rev => rev.rating === r).length / reviews.length) * 100,
   }));
 
-  const filtered = MOCK_REVIEWS
-    .filter(r => (!filterRating || r.rating === filterRating))
-    .filter(r => (!filterTrusted || r.weight >= 3));
+  const filtered = reviews
+    .filter(r => !filterRating || r.rating === filterRating)
+    .filter(r => !filterTrusted || (TIER_WEIGHT[r.profiles?.tier ?? 'bronze'] ?? 1) >= 3);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto flex items-center justify-center py-24">
+        <Loader2 size={32} className="animate-spin text-green-800" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -85,13 +136,15 @@ export default function ReviewsPage() {
       {/* Rating summary */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col md:flex-row gap-8">
         <div className="text-center">
-          <div className="text-6xl font-extrabold text-gray-900">{avgRating.toFixed(1)}</div>
+          <div className="text-6xl font-extrabold text-gray-900">
+            {reviews.length === 0 ? '—' : avgRating.toFixed(1)}
+          </div>
           <div className="flex justify-center gap-0.5 my-2">
             {[1,2,3,4,5].map(s => (
               <Star key={s} size={18} className={s <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
             ))}
           </div>
-          <div className="text-sm text-gray-500">{MOCK_REVIEWS.length} reviews</div>
+          <div className="text-sm text-gray-500">{reviews.length} reviews</div>
           <div className="text-xs text-gray-400 mt-1">Weighted average</div>
         </div>
 
@@ -115,14 +168,17 @@ export default function ReviewsPage() {
         <div className="space-y-2 min-w-48">
           <div className="text-sm font-semibold text-gray-700 mb-3">Trusted Reviewer System™</div>
           {[
-            { tier: 'legend', weight: 10, label: 'Community Legend' },
-            { tier: 'gold', weight: 3, label: 'Gold Member' },
-            { tier: 'silver', weight: 2, label: 'Silver Member' },
-            { tier: 'bronze', weight: 1, label: 'Standard' },
+            { tier: 'legend',   weight: 10, label: 'Community Legend' },
+            { tier: 'platinum', weight: 5,  label: 'Platinum Member' },
+            { tier: 'gold',     weight: 3,  label: 'Gold Member' },
+            { tier: 'silver',   weight: 2,  label: 'Silver Member' },
+            { tier: 'bronze',   weight: 1,  label: 'Standard' },
           ].map(item => (
             <div key={item.tier} className="flex items-center justify-between text-xs">
-              <span className={`px-2 py-0.5 rounded-full font-semibold`}
-                style={{ backgroundColor: TIER_COLORS[item.tier].bg, color: TIER_COLORS[item.tier].text }}>
+              <span
+                className="px-2 py-0.5 rounded-full font-semibold"
+                style={{ backgroundColor: TIER_COLORS[item.tier].bg, color: TIER_COLORS[item.tier].text }}
+              >
                 {item.label}
               </span>
               <span className="text-gray-500">Weight ×{item.weight}</span>
@@ -139,7 +195,7 @@ export default function ReviewsPage() {
             filterTrusted ? 'bg-green-800 text-white border-green-800' : 'bg-white text-gray-700 border-gray-200 hover:border-green-800'
           }`}
         >
-          Trusted Reviewers Only
+          Trusted Reviewers Only (×3+)
         </button>
         {filterRating && (
           <button
@@ -149,106 +205,142 @@ export default function ReviewsPage() {
             {filterRating} Stars ×
           </button>
         )}
-        <span className="text-sm text-gray-500">{filtered.length} reviews</span>
+        <span className="text-sm text-gray-500">{filtered.length} review{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Review list */}
-      <div className="space-y-4">
-        {filtered.map(review => (
-          <div key={review.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-800">
-                    {review.reviewer[0]}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">{review.reviewer}</span>
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                        style={{ backgroundColor: TIER_COLORS[review.tier]?.bg, color: TIER_COLORS[review.tier]?.text }}
-                      >
-                        {TIER_COLORS[review.tier]?.label}
-                      </span>
-                      {review.is_community_legend && (
-                        <span className="text-xs bg-green-900 text-white px-2 py-0.5 rounded-full font-bold">
-                          Community Legend Review
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(s => (
-                          <Star key={s} size={13} className={s <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
-                        ))}
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <Star size={40} className="text-gray-200 mx-auto mb-4" />
+          <p className="text-gray-500">No reviews yet. Share your business profile to get your first review!</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map(review => {
+            const tier = review.profiles?.tier ?? 'bronze';
+            const tierColor = TIER_COLORS[tier] ?? TIER_COLORS.bronze;
+            const weight = TIER_WEIGHT[tier] ?? 1;
+            const reviewerName = review.profiles?.display_name ?? 'Anonymous';
+            const hasResponse = review.review_responses && review.review_responses.length > 0;
+
+            return (
+              <div key={review.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-800">
+                        {reviewerName[0]?.toUpperCase()}
                       </div>
-                      <span className="text-xs text-gray-400">{review.date}</span>
-                      <span className="text-xs text-gray-400">• Weight ×{review.weight}</span>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-gray-900">{reviewerName}</span>
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                            style={{ backgroundColor: tierColor.bg, color: tierColor.text }}
+                          >
+                            {tierColor.label}
+                          </span>
+                          {tier === 'legend' && (
+                            <span className="text-xs bg-green-900 text-white px-2 py-0.5 rounded-full font-bold">
+                              Community Legend
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} size={13} className={s <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                          <span className="text-xs text-gray-400">• Weight ×{weight}</span>
+                        </div>
+                      </div>
                     </div>
+                    <button className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+                      <Flag size={16} />
+                    </button>
+                  </div>
+
+                  {review.title && (
+                    <h4 className="font-semibold text-gray-900 mt-3">{review.title}</h4>
+                  )}
+                  <p className="text-gray-600 text-sm mt-2 leading-relaxed">{review.body}</p>
+
+                  {review.tags && review.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {review.tags.map(tag => (
+                        <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{tag}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 mt-3">
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <ThumbsUp size={13} /> {review.helpful_count} helpful
+                    </span>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:text-red-500 transition-colors">
-                  <Flag size={16} />
-                </button>
-              </div>
 
-              <h4 className="font-semibold text-gray-900 mt-3">{review.title}</h4>
-              <p className="text-gray-600 text-sm mt-1 leading-relaxed">{review.body}</p>
+                {/* Existing response */}
+                {hasResponse && (
+                  <div className="bg-green-50 border-t border-green-100 px-5 py-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare size={14} className="text-green-700" />
+                      <span className="text-sm font-semibold text-green-800">Your Response</span>
+                    </div>
+                    <p className="text-sm text-green-900">{review.review_responses![0].body}</p>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-4 mt-3">
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                  <ThumbsUp size={13} /> {review.helpful_count} helpful
-                </span>
+                {/* Reply form */}
+                {replyingTo === review.id && !hasResponse ? (
+                  <div className="bg-gray-50 border-t border-gray-100 px-5 py-4">
+                    <textarea
+                      value={replyText}
+                      onChange={e => setReplyText(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                      rows={3}
+                      placeholder="Write a professional, helpful response..."
+                      maxLength={1000}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-gray-400">{replyText.length}/1000</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                          className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => submitReply(review.id)}
+                          disabled={submitting || !replyText.trim()}
+                          className="px-4 py-2 text-sm text-white bg-green-800 rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {submitting && <Loader2 size={14} className="animate-spin" />}
+                          Post Response
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : !hasResponse ? (
+                  <div className="border-t border-gray-100 px-5 py-3">
+                    <button
+                      onClick={() => { setReplyingTo(review.id); setReplyText(''); }}
+                      className="text-sm text-green-800 font-semibold hover:text-green-600 flex items-center gap-1"
+                    >
+                      <MessageSquare size={14} /> Respond to this review
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            </div>
-
-            {/* Existing response */}
-            {review.response && (
-              <div className="bg-green-50 border-t border-green-100 px-5 py-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageSquare size={14} className="text-green-700" />
-                  <span className="text-sm font-semibold text-green-800">Your Response</span>
-                </div>
-                <p className="text-sm text-green-900">{review.response}</p>
-              </div>
-            )}
-
-            {/* Reply form */}
-            {replyingTo === review.id && !review.response ? (
-              <div className="bg-gray-50 border-t border-gray-100 px-5 py-4">
-                <textarea
-                  value={replyText}
-                  onChange={e => setReplyText(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                  rows={3}
-                  placeholder="Write a professional, helpful response..."
-                />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={() => setReplyingTo(null)}
-                    className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button className="px-4 py-2 text-sm text-white bg-green-800 rounded-lg hover:bg-green-700 font-semibold">
-                    Post Response
-                  </button>
-                </div>
-              </div>
-            ) : !review.response ? (
-              <div className="border-t border-gray-100 px-5 py-3">
-                <button
-                  onClick={() => setReplyingTo(review.id)}
-                  className="text-sm text-green-800 font-semibold hover:text-green-600 flex items-center gap-1"
-                >
-                  <MessageSquare size={14} /> Respond to this review
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

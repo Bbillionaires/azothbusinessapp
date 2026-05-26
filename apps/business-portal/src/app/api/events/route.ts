@@ -25,6 +25,26 @@ function buildSupabaseClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   )
 }
 
+// GET /api/events?business_id=... — list events for the business
+export async function GET(req: NextRequest) {
+  const cookieStore = await cookies()
+  const supabase = buildSupabaseClient(cookieStore)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const businessId = req.nextUrl.searchParams.get('business_id')
+  if (!businessId) return NextResponse.json({ error: 'business_id required' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('start_at', { ascending: false })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data ?? [])
+}
+
 // POST /api/events — create an event (user must own the business)
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
@@ -71,10 +91,11 @@ export async function POST(req: NextRequest) {
     end_time,
     location,
     capacity,
-    price_type,
+    is_free,
     price,
-    category,
+    event_type,
     image_url,
+    points_reward,
   } = body as {
     title?: string
     description?: string
@@ -83,37 +104,40 @@ export async function POST(req: NextRequest) {
     end_time?: string
     location?: string
     capacity?: number
-    price_type?: 'free' | 'paid'
+    is_free?: boolean
     price?: number
-    category?: string
+    event_type?: string
     image_url?: string
+    points_reward?: number
   }
 
-  if (!title || !date || !time || !location) {
+  if (!title || !date || !time) {
     return NextResponse.json(
-      { error: 'title, date, time, and location are required' },
+      { error: 'title, date, and time are required' },
       { status: 400 }
     )
   }
+
+  const startAt = new Date(`${date}T${time}`).toISOString()
+  const endAt = end_time ? new Date(`${date}T${end_time}`).toISOString() : null
 
   const { data, error } = await supabase
     .from('events')
     .insert({
       business_id,
+      organizer_id: user.id,
       title,
       description: description ?? null,
-      date,
-      time,
-      end_time: end_time ?? null,
-      location,
-      capacity: capacity ?? null,
-      price_type: price_type ?? 'free',
+      start_at: startAt,
+      end_at: endAt,
+      address: location ?? null,
+      max_attendees: capacity ?? null,
+      is_free: is_free ?? true,
       price: price ?? null,
-      category: category ?? null,
+      type: event_type ?? 'community',
       image_url: image_url ?? null,
+      points_reward: points_reward ?? 0,
       status: 'published',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     })
     .select()
     .single()

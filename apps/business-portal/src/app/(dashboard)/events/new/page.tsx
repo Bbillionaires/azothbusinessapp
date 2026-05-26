@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { createBrowserClient } from '@supabase/ssr';
 
 const schema = z.object({
   title: z.string().min(3, 'Title is required'),
@@ -30,6 +31,22 @@ type FormData = z.infer<typeof schema>;
 export default function NewEventPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('businesses').select('id').eq('owner_id', user.id).eq('status', 'active').limit(1).maybeSingle();
+      setBusinessId(data?.id ?? null);
+    }
+    load();
+  }, []);
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -38,10 +55,30 @@ export default function NewEventPage() {
 
   const priceType = watch('priceType');
 
-  async function onSubmit(_data: FormData) {
+  async function onSubmit(data: FormData) {
+    if (!businessId) { setError('No active business found'); return; }
     setSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setError(null);
+    const res = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        business_id: businessId,
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        time: data.time,
+        end_time: data.endTime,
+        location: data.location,
+        capacity: data.capacity,
+        is_free: data.priceType === 'free',
+        price: data.priceType === 'paid' ? data.price : null,
+        event_type: data.category ?? 'community',
+        image_url: data.imageUrl ?? null,
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? 'Failed to create event'); setSaving(false); return; }
     router.push('/events');
   }
 
@@ -56,6 +93,7 @@ export default function NewEventPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="section-card space-y-5">
+        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">{error}</div>}
         <Input label="Event Title" required error={errors.title?.message} {...register('title')} />
 
         <div className="flex flex-col gap-1">

@@ -25,6 +25,26 @@ function buildSupabaseClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   )
 }
 
+// GET /api/jobs?business_id=... — list job postings for the business
+export async function GET(req: NextRequest) {
+  const cookieStore = await cookies()
+  const supabase = buildSupabaseClient(cookieStore)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const businessId = req.nextUrl.searchParams.get('business_id')
+  if (!businessId) return NextResponse.json({ error: 'business_id required' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('job_postings')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data ?? [])
+}
+
 // POST /api/jobs — create a job posting (user must own the business)
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
@@ -66,29 +86,29 @@ export async function POST(req: NextRequest) {
   const {
     title,
     description,
-    employment_type,
+    type,
     location,
     salary_min,
     salary_max,
-    salary_period,
+    salary_type,
     requirements,
     benefits,
-    application_url,
-    application_email,
-    closes_at,
+    external_apply_url,
+    is_remote,
+    expires_at,
   } = body as {
     title?: string
     description?: string
-    employment_type?: string
+    type?: string
     location?: string
     salary_min?: number
     salary_max?: number
-    salary_period?: string
-    requirements?: string
-    benefits?: string
-    application_url?: string
-    application_email?: string
-    closes_at?: string
+    salary_type?: string
+    requirements?: string[]
+    benefits?: string[]
+    external_apply_url?: string
+    is_remote?: boolean
+    expires_at?: string
   }
 
   if (!title || !description) {
@@ -101,19 +121,17 @@ export async function POST(req: NextRequest) {
       business_id,
       title,
       description,
-      employment_type: employment_type ?? null,
+      type: type ?? 'full_time',
       location: location ?? null,
       salary_min: salary_min ?? null,
       salary_max: salary_max ?? null,
-      salary_period: salary_period ?? null,
-      requirements: requirements ?? null,
-      benefits: benefits ?? null,
-      application_url: application_url ?? null,
-      application_email: application_email ?? null,
-      closes_at: closes_at ?? null,
-      status: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      salary_type: salary_type ?? null,
+      requirements: requirements ?? [],
+      benefits: benefits ?? [],
+      external_apply_url: external_apply_url ?? null,
+      is_remote: is_remote ?? false,
+      expires_at: expires_at ?? null,
+      is_active: true,
     })
     .select()
     .single()

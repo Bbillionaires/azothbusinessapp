@@ -60,26 +60,27 @@ export function useOffers(filters: OffersFilters = {}) {
 }
 
 export function useOffer(id: string) {
-  const [data, setData] = useState<Offer | null>(null);
+  const [offer, setOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetch() {
+    if (!id) return;
+    async function load() {
       setLoading(true);
-      const { data: offer, error: err } = await supabase
+      const { data, error: err } = await supabase
         .from('business_offers')
-        .select('*, businesses(id, name, city, state)')
+        .select('*, businesses(name)')
         .eq('id', id)
         .single();
       if (err) setError(err.message);
-      else setData(offer as Offer);
+      else setOffer(data as any);
       setLoading(false);
     }
-    if (id) fetch();
+    load();
   }, [id]);
 
-  return { data, loading, error };
+  return { offer, loading, error };
 }
 
 export function useRedeemOffer() {

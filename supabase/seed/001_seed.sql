@@ -105,7 +105,7 @@ ON CONFLICT DO NOTHING;
 -- ==================================================
 -- DEMO EVENTS
 -- ==================================================
-INSERT INTO events (business_id, organizer_id, title, description, event_type, starts_at, ends_at, address, city, is_free, points_reward, status)
+INSERT INTO events (business_id, organizer_id, title, description, type, start_at, end_at, address, city, is_free, points_reward, status)
 SELECT
   '22222222-2222-2222-2222-222222222222'::uuid,
   (SELECT id FROM profiles WHERE role = 'consumer' LIMIT 1),
