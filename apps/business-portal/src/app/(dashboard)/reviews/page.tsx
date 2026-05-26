@@ -88,7 +88,7 @@ export default function ReviewsPage() {
     const res = await fetch(`/api/reviews/${reviewId}/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: replyText.trim() }),
+      body: JSON.stringify({ response_text: replyText.trim() }),
     });
     if (res.ok) {
       setReviews(prev => prev.map(r =>

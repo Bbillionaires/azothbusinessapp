@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useReceipts } from '../../hooks/useReceipts';
+import { useReceipts, useReceiptUpload } from '../../hooks/useReceipts';
 import { ReceiptStatus } from '../../components/receipt/ReceiptStatus';
 import { ReceiptUploader } from '../../components/receipt/ReceiptUploader';
 import { THEME } from '../../lib/theme';
@@ -24,9 +24,9 @@ type Tab = 'upload' | 'history';
 
 export default function ScanScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('upload');
-  const [uploading, setUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const { receipts, isLoading, submitReceipt, refetch } = useReceipts();
+  const { data: receipts = [], loading: isLoading, refetch } = useReceipts();
+  const { upload, uploading, error: uploadError } = useReceiptUpload();
 
   const pendingCount = receipts.filter(r => r.status === 'pending').length;
   const approvedCount = receipts.filter(r => r.status === 'approved').length;
@@ -63,17 +63,14 @@ export default function ScanScreen() {
 
   const handleSubmit = async () => {
     if (!selectedImage) return;
-    setUploading(true);
-    try {
-      await submitReceipt(selectedImage);
+    const result = await upload(selectedImage, 'image/jpeg');
+    if (result.error) {
+      Alert.alert('Upload Failed', result.error);
+    } else {
       setSelectedImage(null);
       setActiveTab('history');
       refetch();
       Alert.alert('Receipt Submitted!', 'Your receipt is being processed. Points will be added once verified.', [{ text: 'OK' }]);
-    } catch {
-      Alert.alert('Upload Failed', 'Please try again.');
-    } finally {
-      setUploading(false);
     }
   };
 
