@@ -25,7 +25,7 @@ const REWARD_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export function RewardCard({ reward, userPoints, onRedeem }: RewardCardProps) {
   const canAfford = userPoints >= reward.points_cost;
-  const iconName = REWARD_ICONS[reward.reward_type] ?? 'gift-outline';
+  const iconName = REWARD_ICONS[reward.type] ?? 'gift-outline';
 
   return (
     <View style={[styles.container, !canAfford && styles.containerDisabled]}>

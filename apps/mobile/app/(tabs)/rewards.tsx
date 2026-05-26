@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRewards } from '../../hooks/useRewards';
+import { useRewards, usePointsHistory, useRedeemReward } from '../../hooks/useRewards';
 import { useAuth } from '../../hooks/useAuth';
 import { RewardCard } from '../../components/rewards/RewardCard';
 import { PointsHistory } from '../../components/rewards/PointsHistory';
@@ -23,7 +23,9 @@ type Tab = 'earn' | 'redeem' | 'history';
 
 export default function RewardsScreen() {
   const { profile } = useAuth();
-  const { rewards, redemptions, isLoading, redeemReward } = useRewards();
+  const { data: rewards = [], loading: isLoading } = useRewards();
+  const { data: pointsHistory = [] } = usePointsHistory();
+  const { redeem: redeemReward } = useRedeemReward();
   const [activeTab, setActiveTab] = useState<Tab>('redeem');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -31,15 +33,15 @@ export default function RewardsScreen() {
   const totalEarned = profile?.total_points_earned ?? 0;
   const tier = profile?.tier ?? 'bronze';
 
-  const tierInfo = TIER_THRESHOLDS[tier as keyof typeof TIER_THRESHOLDS];
-  const nextTier = Object.entries(TIER_THRESHOLDS).find(([, t]) => t.min > points);
+  const tierInfo = TIER_THRESHOLDS.find(t => t.tier === tier);
+  const nextTier = TIER_THRESHOLDS.find(t => t.minPoints > points);
   const progressPct = nextTier
-    ? Math.min(100, ((points - (tierInfo?.min ?? 0)) / ((nextTier[1].min ?? points + 1) - (tierInfo?.min ?? 0))) * 100)
+    ? Math.min(100, ((points - (tierInfo?.minPoints ?? 0)) / ((nextTier.minPoints ?? points + 1) - (tierInfo?.minPoints ?? 0))) * 100)
     : 100;
 
   const filteredRewards = rewards.filter(r =>
     selectedCategory === 'All' ||
-    r.type.toLowerCase().includes(selectedCategory.toLowerCase())
+    (r.type ?? '').toLowerCase().includes(selectedCategory.toLowerCase())
   );
 
   const TIER_COLORS: Record<string, string> = {
@@ -71,7 +73,7 @@ export default function RewardsScreen() {
                 <View style={[styles.progressFill, { width: `${progressPct}%` as any }]} />
               </View>
               <Text style={styles.progressLabel}>
-                {(nextTier[1].min - points).toLocaleString()} pts to {nextTier[0].toUpperCase()}
+                {(nextTier.minPoints - points).toLocaleString()} pts to {nextTier.label.toUpperCase()}
               </Text>
             </View>
           )}
@@ -172,7 +174,7 @@ export default function RewardsScreen() {
 
         {activeTab === 'history' && (
           <View style={styles.historySection}>
-            <PointsHistory transactions={redemptions} />
+            <PointsHistory transactions={pointsHistory} />
           </View>
         )}
       </ScrollView>

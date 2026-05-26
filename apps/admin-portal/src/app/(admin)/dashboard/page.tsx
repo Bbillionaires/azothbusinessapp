@@ -24,6 +24,10 @@ function generateChartData() {
 async function getPlatformStats() {
   const supabase = await createSupabaseServerClient();
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+
   const [
     { count: totalUsers },
     { count: totalBusinesses },
@@ -33,6 +37,8 @@ async function getPlatformStats() {
     { count: receiptsFlagged },
     { count: openDisputes },
     { count: activeAdCampaigns },
+    { count: newUsersToday },
+    pointsTodayRes,
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('businesses').select('*', { count: 'exact', head: true }),
@@ -42,18 +48,22 @@ async function getPlatformStats() {
     supabase.from('receipts').select('*', { count: 'exact', head: true }).eq('status', 'flagged'),
     supabase.from('disputes').select('*', { count: 'exact', head: true }).eq('status', 'open'),
     supabase.from('ad_campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', todayStart.toISOString()),
+    supabase.from('points_transactions').select('amount').gte('created_at', todayStart.toISOString()).gt('amount', 0),
   ]);
+
+  const pointsIssuedToday = (pointsTodayRes.data ?? []).reduce((s: number, r: { amount: number }) => s + r.amount, 0);
 
   return {
     totalUsers: totalUsers ?? 0,
-    newUsersToday: 24,
+    newUsersToday: newUsersToday ?? 0,
     totalBusinesses: totalBusinesses ?? 0,
     activeBusinesses: activeBusinesses ?? 0,
     pendingBusinesses: pendingBusinesses ?? 0,
     receiptsPendingReview: receiptsPending ?? 0,
     receiptsFlaggedFraud: receiptsFlagged ?? 0,
-    pointsIssuedToday: 47_350,
-    revenueThisMonth: 12_840,
+    pointsIssuedToday,
+    revenueThisMonth: 0,
     activeAdCampaigns: activeAdCampaigns ?? 0,
     openDisputes: openDisputes ?? 0,
   };
@@ -100,17 +110,17 @@ async function getRecentActivity() {
 export default async function DashboardPage() {
   const [stats, activity] = await Promise.all([
     getPlatformStats().catch(() => ({
-      totalUsers: 8_412,
-      newUsersToday: 24,
-      totalBusinesses: 356,
-      activeBusinesses: 298,
-      pendingBusinesses: 41,
-      receiptsPendingReview: 127,
-      receiptsFlaggedFraud: 18,
-      pointsIssuedToday: 47_350,
-      revenueThisMonth: 12_840,
-      activeAdCampaigns: 23,
-      openDisputes: 9,
+      totalUsers: 0,
+      newUsersToday: 0,
+      totalBusinesses: 0,
+      activeBusinesses: 0,
+      pendingBusinesses: 0,
+      receiptsPendingReview: 0,
+      receiptsFlaggedFraud: 0,
+      pointsIssuedToday: 0,
+      revenueThisMonth: 0,
+      activeAdCampaigns: 0,
+      openDisputes: 0,
     })),
     getRecentActivity().catch(() => ({
       recentReceipts: [] as Receipt[],

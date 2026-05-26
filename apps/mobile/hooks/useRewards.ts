@@ -15,7 +15,7 @@ export interface RewardCatalogItem {
   business_id: string | null;
   name: string;
   description: string | null;
-  reward_type: string;
+  type: string;
   points_cost: number;
   quantity_available: number | null;
   quantity_redeemed: number;
@@ -33,11 +33,12 @@ export interface RewardCatalogItem {
 export interface PointsTransaction {
   id: string;
   user_id: string;
-  points: number;
-  transaction_type: string;
-  description: string | null;
-  receipt_id: string | null;
+  amount: number;
+  type: string;
+  description: string;
   reference_id: string | null;
+  reference_type: string | null;
+  balance_after: number;
   created_at: string;
 }
 
@@ -46,13 +47,13 @@ export interface RewardRedemption {
   user_id: string;
   reward_id: string;
   points_spent: number;
-  status: 'pending' | 'fulfilled' | 'cancelled';
-  redeemed_at: string;
+  status: 'pending' | 'completed' | 'expired' | 'cancelled';
+  redeemed_at: string | null;
   created_at: string;
   reward_catalog?: {
     name: string;
     points_cost: number;
-    reward_type: string;
+    type: string;
   } | null;
 }
 
@@ -148,7 +149,7 @@ export function useRedemptions() {
     try {
       const { data: rows, error: err } = await supabase
         .from('reward_redemptions')
-        .select('*, reward_catalog(name, points_cost, reward_type)')
+        .select('*, reward_catalog(name, points_cost, type)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);

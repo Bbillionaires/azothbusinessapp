@@ -53,8 +53,8 @@ export function PointsHistory({ transactions, isLoading }: PointsHistoryProps) {
       scrollEnabled={false}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       renderItem={({ item }) => {
-        const isEarning = item.delta > 0;
-        const iconConfig = TX_ICONS[item.transaction_type] ?? {
+        const isEarning = item.amount > 0;
+        const iconConfig = TX_ICONS[item.type] ?? {
           icon: 'star-outline' as keyof typeof Ionicons.glyphMap,
           color: Colors.textTertiary,
         };
@@ -66,7 +66,7 @@ export function PointsHistory({ transactions, isLoading }: PointsHistoryProps) {
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.txLabel} numberOfLines={1}>
-                {item.description ?? item.transaction_type.replace(/_/g, ' ')}
+                {item.description ?? item.type.replace(/_/g, ' ')}
               </Text>
               <Text style={styles.txDate}>
                 {format(new Date(item.created_at), 'MMM d, yyyy')}
@@ -75,7 +75,7 @@ export function PointsHistory({ transactions, isLoading }: PointsHistoryProps) {
             <View style={styles.deltaContainer}>
               <Text style={[styles.delta, isEarning ? styles.deltaPositive : styles.deltaNegative]}>
                 {isEarning ? '+' : ''}
-                {item.delta.toLocaleString()}
+                {item.amount.toLocaleString()}
               </Text>
               <Text style={styles.balance}>{item.balance_after.toLocaleString()} pts</Text>
             </View>
