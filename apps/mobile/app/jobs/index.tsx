@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 
 type Job = {
-  id: string; title: string; description: string | null; job_type: string;
+  id: string; title: string; description: string | null; type: string;
   location: string | null; is_remote: boolean; salary_min: number | null;
   salary_max: number | null; salary_type: string | null; experience_level: string | null;
   created_at: string; businesses: { name: string; city: string; state: string; logo_url?: string } | null;
@@ -78,7 +78,7 @@ export default function JobsScreen() {
     } else if (filter === 'entry') {
       query = query.eq('experience_level', 'entry');
     } else if (filter !== 'all') {
-      query = query.eq('job_type', filter);
+      query = query.eq('type', filter);
     }
 
     const { data } = await query;
@@ -132,7 +132,7 @@ export default function JobsScreen() {
             <>
               <Text style={styles.resultsCount}>{jobs.length} position{jobs.length !== 1 ? 's' : ''} found</Text>
               {jobs.map(job => {
-                const typeConfig = JOB_TYPE_CONFIG[job.job_type] ?? { label: job.job_type, color: '#6B7280', bg: '#F3F4F6' };
+                const typeConfig = JOB_TYPE_CONFIG[job.type] ?? { label: job.type, color: '#6B7280', bg: '#F3F4F6' };
                 const salary = formatSalary(job.salary_min, job.salary_max, job.salary_type);
                 const initials = (job.businesses?.name ?? 'B').split(' ').map(w => w[0]).slice(0, 2).join('');
 

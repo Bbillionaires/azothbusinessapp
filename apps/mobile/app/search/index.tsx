@@ -14,8 +14,8 @@ const MAX_RECENT = 8;
 type SearchTab = 'businesses' | 'events' | 'jobs' | 'deals';
 
 type BizResult = { id: string; name: string; category: string; city: string; state: string; verification_level: string | null };
-type EventResult = { id: string; title: string; starts_at: string; businesses: { name: string } | null };
-type JobResult = { id: string; title: string; job_type: string; is_remote: boolean; businesses: { name: string; city: string } | null };
+type EventResult = { id: string; title: string; start_at: string; businesses: { name: string } | null };
+type JobResult = { id: string; title: string; type: string; is_remote: boolean; businesses: { name: string; city: string } | null };
 type DealResult = { id: string; title: string; offer_type: string; discount_percent: number | null; businesses: { name: string } | null };
 
 type Results = {
@@ -65,9 +65,9 @@ export default function SearchScreen() {
     const [bizRes, eventRes, jobRes, dealRes] = await Promise.all([
       supabase.from('businesses').select('id, name, category, city, state, verification_level')
         .ilike('name', like).eq('status', 'active').limit(10),
-      supabase.from('events').select('id, title, starts_at, businesses(name)')
-        .ilike('title', like).eq('status', 'published').gte('starts_at', new Date().toISOString()).limit(10),
-      supabase.from('job_postings').select('id, title, job_type, is_remote, businesses(name, city)')
+      supabase.from('events').select('id, title, start_at, businesses(name)')
+        .ilike('title', like).eq('status', 'published').gte('start_at', new Date().toISOString()).limit(10),
+      supabase.from('job_postings').select('id, title, type, is_remote, businesses(name, city)')
         .ilike('title', like).eq('is_active', true).limit(10),
       supabase.from('business_offers').select('id, title, offer_type, discount_percent, businesses(name)')
         .ilike('title', like).eq('is_active', true).limit(10),
@@ -205,7 +205,7 @@ export default function SearchScreen() {
                 <View style={styles.resultInfo}>
                   <Text style={styles.resultTitle}>{event.title}</Text>
                   <Text style={styles.resultSub}>
-                    {event.businesses?.name} · {new Date(event.starts_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {event.businesses?.name} · {new Date(event.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color="#DDD" />
