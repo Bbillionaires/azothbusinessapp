@@ -18,6 +18,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/legends': 'Community Legends',
   '/analytics': 'Analytics',
   '/fraud': 'Fraud Dashboard',
+  '/notifications': 'Notifications',
+  '/exports': 'Data Exports',
   '/audit': 'Audit Logs',
   '/settings': 'System Settings',
 };

@@ -19,6 +19,8 @@ import {
   ShieldAlert,
   ScrollText,
   Settings,
+  Bell,
+  Download,
   ChevronRight,
   Leaf,
 } from 'lucide-react';
@@ -37,6 +39,8 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   ShieldAlert,
   ScrollText,
   Settings,
+  Bell,
+  Download,
 };
 
 // Nav group labels
@@ -44,6 +48,8 @@ const SECTION_BREAKS: Record<string, string> = {
   '/dashboard': 'Overview',
   '/users': 'Management',
   '/fraud': 'Security',
+  '/notifications': 'Communications',
+  '/audit': 'System',
 };
 
 interface AdminSidebarProps {
