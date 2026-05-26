@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,33 @@ import { useAuth } from '../../hooks/useAuth';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { THEME } from '../../lib/theme';
+import { supabase } from '../../lib/supabase';
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [statsData, setStatsData] = useState({ receipts: 0, reviews: 0, referrals: 0, events: 0 });
+
+  useEffect(() => {
+    async function loadStats() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [receiptsRes, reviewsRes, referralsRes] = await Promise.all([
+        supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('referral_events').select('id', { count: 'exact', head: true }).eq('referrer_id', user.id),
+      ]);
+
+      setStatsData({
+        receipts: receiptsRes.count ?? 0,
+        reviews: reviewsRes.count ?? 0,
+        referrals: referralsRes.count ?? 0,
+        events: 0,
+      });
+    }
+    loadStats();
+  }, []);
 
   const referralUrl = `https://localfirstrewards.com/ref/${profile?.referral_code ?? 'loading'}`;
 
@@ -40,10 +63,10 @@ export default function ProfileScreen() {
   };
 
   const stats = [
-    { label: 'Receipts', value: '47', icon: '🧾' },
-    { label: 'Reviews', value: '12', icon: '⭐' },
-    { label: 'Referrals', value: '8', icon: '👥' },
-    { label: 'Events', value: '5', icon: '📅' },
+    { label: 'Receipts', value: String(statsData.receipts), icon: '🧾' },
+    { label: 'Reviews', value: String(statsData.reviews), icon: '⭐' },
+    { label: 'Referrals', value: String(statsData.referrals), icon: '👥' },
+    { label: 'Events', value: String(statsData.events), icon: '📅' },
   ];
 
   const menuSections = [

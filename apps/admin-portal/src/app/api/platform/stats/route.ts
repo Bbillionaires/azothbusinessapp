@@ -1,106 +1,75 @@
-import { NextResponse } from 'next/server'
-import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase'
-import type { AdminRole } from '@/lib/supabase'
+import { NextResponse } from 'next/server';
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase';
+import type { AdminRole } from '@/lib/supabase';
 
-const ADMIN_ROLES: AdminRole[] = ['admin_staff', 'admin_manager', 'super_admin']
+const ADMIN_ROLES: AdminRole[] = ['admin_staff', 'admin_manager', 'super_admin'];
 
-// Cache revalidation: 60 seconds
-export const revalidate = 60
+export const revalidate = 60;
 
 export async function GET() {
   try {
-    // Verify caller is an authenticated admin
-    const authClient = await createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await authClient.auth.getUser()
+    const authClient = await createSupabaseServerClient();
+    const { data: { user } } = await authClient.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: callerProfile } = await authClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+      .from('profiles').select('role').eq('id', user.id).single();
 
     if (!callerProfile || !ADMIN_ROLES.includes(callerProfile.role as AdminRole)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const serviceClient = createSupabaseServiceClient()
+    const svc = createSupabaseServiceClient();
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
-    // Run all stat queries in parallel for performance
     const [
-      totalUsersResult,
-      activeBusinessesResult,
-      approvedReceiptsResult,
-      totalSpendingResult,
-      flaggedReceiptsResult,
-      totalReviewsResult,
+      totalUsersRes,
+      totalBizRes,
+      activeBizRes,
+      pendingReceiptsRes,
+      flaggedReceiptsRes,
+      pointsTodayRes,
+      revenueMonthRes,
+      activeAdRes,
+      openDisputesRes,
     ] = await Promise.all([
-      serviceClient
-        .from('profiles')
-        .select('id', { count: 'exact', head: true }),
+      svc.from('profiles').select('id', { count: 'exact', head: true }),
+      svc.from('businesses').select('id', { count: 'exact', head: true }),
+      svc.from('businesses').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      svc.from('receipts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      svc.from('receipts').select('id', { count: 'exact', head: true }).gte('fraud_score', 90).in('status', ['pending', 'flagged']),
+      svc.from('points_transactions').select('amount').gte('created_at', todayStart).eq('transaction_type', 'earn'),
+      svc.from('receipts').select('amount').eq('status', 'approved').gte('submitted_at', monthStart),
+      svc.from('ad_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      svc.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    ]);
 
-      serviceClient
-        .from('businesses')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'active'),
+    const pointsIssuedToday = (pointsTodayRes.data ?? []).reduce(
+      (s: number, r: { amount: number }) => s + (r.amount ?? 0), 0
+    );
 
-      serviceClient
-        .from('receipts')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'approved'),
+    const revenueThisMonth = (revenueMonthRes.data ?? []).reduce(
+      (s: number, r: { amount: number }) => s + (r.amount ?? 0), 0
+    );
 
-      serviceClient
-        .from('receipts')
-        .select('total_amount')
-        .eq('status', 'approved'),
-
-      serviceClient
-        .from('receipts')
-        .select('id', { count: 'exact', head: true })
-        .gte('fraud_score', 30),
-
-      serviceClient
-        .from('reviews')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'published'),
-    ])
-
-    // Compute total spending from approved receipts
-    const totalSpending = totalSpendingResult.data
-      ? totalSpendingResult.data.reduce(
-          (sum: number, row: { total_amount: number | null }) =>
-            sum + (row.total_amount ?? 0),
-          0
-        )
-      : 0
-
-    const stats = {
-      total_users: totalUsersResult.count ?? 0,
-      active_businesses: activeBusinessesResult.count ?? 0,
-      approved_receipts: approvedReceiptsResult.count ?? 0,
-      total_spending: totalSpending,
-      flagged_receipts: flaggedReceiptsResult.count ?? 0,
-      total_reviews: totalReviewsResult.count ?? 0,
-    }
-
-    return NextResponse.json(
-      { stats, generated_at: new Date().toISOString() },
-      {
-        headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
-        },
-      }
-    )
+    return NextResponse.json({
+      totalUsers: totalUsersRes.count ?? 0,
+      totalBusinesses: totalBizRes.count ?? 0,
+      activeBusinesses: activeBizRes.count ?? 0,
+      receiptsPendingReview: pendingReceiptsRes.count ?? 0,
+      receiptsFlaggedFraud: flaggedReceiptsRes.count ?? 0,
+      pointsIssuedToday,
+      revenueThisMonth,
+      activeAdCampaigns: activeAdRes.count ?? 0,
+      openDisputes: openDisputesRes.count ?? 0,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
+    });
   } catch (error) {
-    console.error('Unexpected error in platform stats:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('platform stats error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
