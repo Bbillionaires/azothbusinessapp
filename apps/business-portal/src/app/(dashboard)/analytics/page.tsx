@@ -1,42 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Eye, Users, Star, DollarSign } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { TrendingUp, TrendingDown, Eye, Users, Star, DollarSign, Receipt, Gift, RefreshCw } from 'lucide-react';
+import { useBusiness } from '@/hooks/useBusiness';
 
 const PERIOD_OPTIONS = ['7 days', '30 days', '90 days', '12 months'];
 
-const PROFILE_VIEWS = [
-  { date: 'May 1', views: 45 }, { date: 'May 5', views: 62 }, { date: 'May 8', views: 58 },
-  { date: 'May 12', views: 89 }, { date: 'May 15', views: 105 }, { date: 'May 18', views: 94 },
-  { date: 'May 22', views: 118 }, { date: 'May 26', views: 132 },
-];
-
-const VISITOR_SOURCES = [
-  { name: 'Search', value: 42, color: '#1B4332' },
-  { name: 'Map', value: 28, color: '#D4AF37' },
-  { name: 'Direct', value: 18, color: '#059669' },
-  { name: 'Referral', value: 12, color: '#7C3AED' },
-];
-
-const TOP_ACTIONS = [
-  { action: 'Viewed Photos', count: 342, change: 12 },
-  { action: 'Clicked Call', count: 89, change: -5 },
-  { action: 'Get Directions', count: 124, change: 8 },
-  { action: 'Visited Website', count: 67, change: 22 },
-  { action: 'Saved Business', count: 48, change: 31 },
-  { action: 'Left Review', count: 12, change: -2 },
-];
-
-type WeeklyEntry = { week: string; receipts: number; revenue: number };
-
 type AnalyticsSummary = {
-  businessId: string;
-  revenue: { total_revenue: number; receipt_count: number };
-  reviews: { average_rating: number; total_reviews: number; weighted_avg: number };
-  followers: { total_followers: number };
-  offerRedemptions: { id: string; title: string; redemption_count: number }[];
-  weekly: WeeklyEntry[];
+  business: { id: string; name: string };
+  revenue: {
+    total: number;
+    this_month: number;
+    last_month: number;
+    growth_pct: number | null;
+  };
+  receipts: { total: number; this_month: number; avg_amount: number };
+  reviews: { total: number; avg_rating: number; weighted_avg: number };
+  followers: { total: number; new_this_month: number };
+  offers: { total_redemptions: number; this_month: number };
+  top_customers: { user_id: string; total_spent: number }[];
+  weekly_spending: { week: string; amount: number }[];
 };
 
 function formatShortDate(isoWeek: string): string {
@@ -60,14 +44,16 @@ export default function AnalyticsPage() {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { business } = useBusiness();
 
   useEffect(() => {
+    if (!business?.id) return;
     async function fetchSummary() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/analytics/summary');
-        if (!res.ok) throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+        const res = await fetch(`/api/analytics/summary?business_id=${business!.id}`);
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
         const json: AnalyticsSummary = await res.json();
         setSummary(json);
       } catch (err: any) {
@@ -77,51 +63,59 @@ export default function AnalyticsPage() {
       }
     }
     fetchSummary();
-  }, []);
+  }, [business?.id]);
 
-  const weeklyChartData = summary?.weekly.map(w => ({
+  const weeklyChartData = (summary?.weekly_spending ?? []).map(w => ({
     date: formatShortDate(w.week),
-    receipts: w.receipts,
-  })) ?? [];
+    amount: w.amount,
+  }));
 
-  const kpis = [
+  const kpis = summary ? [
     {
-      label: 'Profile Views',
-      value: '1,247',
-      change: 18,
-      icon: <Eye size={20} className="text-blue-600" />,
-      bg: 'bg-blue-50',
-      mock: true,
-    },
-    {
-      label: 'Total Revenue',
-      value: summary ? `$${summary.revenue.total_revenue.toLocaleString()}` : '—',
-      change: 5,
+      label: 'Revenue This Month',
+      value: `$${summary.revenue.this_month.toLocaleString()}`,
+      change: summary.revenue.growth_pct,
       icon: <DollarSign size={20} className="text-green-600" />,
       bg: 'bg-green-50',
-      mock: false,
     },
     {
       label: 'Avg Rating',
-      value: summary ? summary.reviews.average_rating.toFixed(1) : '—',
-      change: 3,
+      value: summary.reviews.avg_rating > 0 ? summary.reviews.avg_rating.toFixed(1) : '—',
+      change: null,
       icon: <Star size={20} className="text-yellow-600" />,
       bg: 'bg-yellow-50',
-      mock: false,
     },
     {
       label: 'Total Followers',
-      value: summary ? summary.followers.total_followers.toLocaleString() : '—',
-      change: 12,
+      value: summary.followers.total.toLocaleString(),
+      change: summary.followers.new_this_month > 0 ? null : null,
+      extra: `+${summary.followers.new_this_month} this month`,
       icon: <Users size={20} className="text-purple-600" />,
       bg: 'bg-purple-50',
-      mock: false,
     },
-  ];
+    {
+      label: 'Offer Redemptions',
+      value: summary.offers.total_redemptions.toLocaleString(),
+      change: null,
+      extra: `${summary.offers.this_month} this month`,
+      icon: <Gift size={20} className="text-orange-600" />,
+      bg: 'bg-orange-50',
+    },
+  ] : [];
+
+  // Engagement breakdown using real counters
+  const engagementData = summary ? [
+    { label: 'Receipts', value: summary.receipts.total, color: '#1B4332' },
+    { label: 'Reviews', value: summary.reviews.total, color: '#D4AF37' },
+    { label: 'Followers', value: summary.followers.total, color: '#7C3AED' },
+    { label: 'Redemptions', value: summary.offers.total_redemptions, color: '#059669' },
+  ] : [];
+
+  const maxEngagement = Math.max(...engagementData.map(e => e.value), 1);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
           <p className="text-gray-500 mt-1">Track how your business is performing</p>
@@ -142,9 +136,7 @@ export default function AnalyticsPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm font-medium">
-          {error}
-        </div>
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm font-medium">{error}</div>
       )}
 
       {/* KPI cards */}
@@ -158,107 +150,120 @@ export default function AnalyticsPage() {
               </div>
               <div className="text-2xl font-bold text-gray-900">{kpi.value}</div>
               <div className="text-sm text-gray-500 mt-0.5">{kpi.label}</div>
-              <div className={`flex items-center gap-1 mt-2 text-sm font-semibold ${kpi.change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {kpi.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                {Math.abs(kpi.change)}% vs prev period
-              </div>
+              {kpi.change != null ? (
+                <div className={`flex items-center gap-1 mt-2 text-sm font-semibold ${kpi.change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {kpi.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  {Math.abs(kpi.change)}% vs last month
+                </div>
+              ) : (kpi as any).extra ? (
+                <div className="mt-2 text-xs text-gray-400">{(kpi as any).extra}</div>
+              ) : null}
             </div>
           ))
         }
       </div>
 
-      {/* Profile views chart */}
+      {/* Weekly revenue chart */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="font-bold text-lg text-gray-900 mb-4">Profile Views</h2>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={PROFILE_VIEWS}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Line type="monotone" dataKey="views" stroke="#1B4332" strokeWidth={2.5} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <h2 className="font-bold text-lg text-gray-900 mb-4">Weekly Revenue (Last 8 Weeks)</h2>
+        {loading ? (
+          <div className="h-[220px] flex items-center justify-center">
+            <RefreshCw size={20} className="animate-spin text-gray-300" />
+          </div>
+        ) : weeklyChartData.length === 0 ? (
+          <div className="h-[220px] flex items-center justify-center text-gray-400 text-sm">
+            No revenue data yet — revenue appears as receipts are approved
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={weeklyChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${v}`} />
+              <Tooltip formatter={v => [`$${v}`, 'Revenue']} />
+              <Line type="monotone" dataKey="amount" stroke="#1B4332" strokeWidth={2.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Receipts approved chart (real data) */}
+        {/* Receipts this month */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="font-bold text-lg text-gray-900 mb-4">Receipts Approved</h2>
+          <h2 className="font-bold text-lg text-gray-900 mb-2">Receipt Summary</h2>
           {loading ? (
-            <div className="h-[200px] flex items-center justify-center">
-              <div className="animate-pulse w-full h-full bg-gray-50 rounded-lg" />
+            <div className="h-[160px] flex items-center justify-center">
+              <RefreshCw size={20} className="animate-spin text-gray-300" />
             </div>
-          ) : weeklyChartData.length === 0 ? (
-            <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">
-              No data available yet
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={weeklyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v) => [v, 'Receipts Approved']} />
-                <Bar dataKey="receipts" fill="#1B4332" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Visitor sources */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-lg text-gray-900">Traffic Sources</h2>
-            <span className="text-xs text-gray-400 italic">Sample data — tracking coming soon</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <PieChart width={140} height={140}>
-              <Pie data={VISITOR_SOURCES} cx={65} cy={65} innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
-                {VISITOR_SOURCES.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-            </PieChart>
-            <div className="flex-1 space-y-2">
-              {VISITOR_SOURCES.map((s, i) => (
+          ) : summary ? (
+            <div className="space-y-4 pt-2">
+              {[
+                { label: 'Total Receipts', value: summary.receipts.total.toLocaleString(), icon: '🧾' },
+                { label: 'This Month', value: summary.receipts.this_month.toLocaleString(), icon: '📅' },
+                { label: 'Avg Receipt Amount', value: `$${summary.receipts.avg_amount.toFixed(2)}`, icon: '💵' },
+                { label: 'Total Revenue', value: `$${summary.revenue.total.toLocaleString()}`, icon: '📈' },
+                { label: 'Last Month Revenue', value: `$${summary.revenue.last_month.toLocaleString()}`, icon: '📊' },
+              ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                    <span className="text-gray-700">{s.name}</span>
+                    <span>{item.icon}</span>
+                    <span className="text-gray-600">{item.label}</span>
                   </div>
-                  <span className="font-semibold text-gray-900">{s.value}%</span>
+                  <span className="font-bold text-gray-900">{item.value}</span>
                 </div>
               ))}
             </div>
-          </div>
+          ) : null}
+        </div>
+
+        {/* Engagement breakdown */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="font-bold text-lg text-gray-900 mb-4">Engagement Breakdown</h2>
+          {loading ? (
+            <div className="h-[160px] flex items-center justify-center">
+              <RefreshCw size={20} className="animate-spin text-gray-300" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {engagementData.map((item, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <span className="w-24 text-sm text-gray-700 flex-shrink-0">{item.label}</span>
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${(item.value / maxEngagement) * 100}%`, backgroundColor: item.color }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-sm font-bold text-gray-900">{item.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Top actions */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-lg text-gray-900">Customer Actions</h2>
-          <span className="text-xs text-gray-400 italic">Sample data — tracking coming soon</span>
-        </div>
-        <div className="space-y-3">
-          {TOP_ACTIONS.map((action, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <span className="w-36 text-sm text-gray-700 flex-shrink-0">{action.action}</span>
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-700 rounded-full"
-                  style={{ width: `${(action.count / 342) * 100}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-sm font-semibold text-gray-900">{action.count}</span>
-              <span className={`w-12 text-right text-xs font-semibold ${action.change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {action.change >= 0 ? '+' : ''}{action.change}%
-              </span>
+      {/* Reviews summary */}
+      {summary && summary.reviews.total > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="font-bold text-lg text-gray-900 mb-4">Review Performance</h2>
+          <div className="grid grid-cols-3 gap-6 text-center">
+            <div>
+              <div className="text-3xl font-bold text-gray-900">{summary.reviews.avg_rating.toFixed(1)}</div>
+              <div className="text-sm text-gray-500 mt-1">Average Rating</div>
+              <div className="text-yellow-500 text-lg mt-1">{'★'.repeat(Math.round(summary.reviews.avg_rating))}</div>
             </div>
-          ))}
+            <div>
+              <div className="text-3xl font-bold text-gray-900">{summary.reviews.total}</div>
+              <div className="text-sm text-gray-500 mt-1">Total Reviews</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-gray-900">{summary.reviews.weighted_avg.toFixed(1)}</div>
+              <div className="text-sm text-gray-500 mt-1">Weighted Score</div>
+              <div className="text-xs text-gray-400 mt-1">Legend reviews count 10×</div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
