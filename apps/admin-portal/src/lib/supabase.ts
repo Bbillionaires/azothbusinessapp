@@ -91,6 +91,9 @@ export interface Receipt {
   };
   receipt_hash?: string;
   points_awarded?: number;
+  review_notes?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
   profiles?: { full_name?: string; email?: string; tier?: string; points_balance?: number } | null;
   businesses?: { name?: string; city?: string; state?: string } | null;
 }
