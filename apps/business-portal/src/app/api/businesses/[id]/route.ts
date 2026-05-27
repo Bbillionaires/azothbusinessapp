@@ -111,7 +111,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const { error } = await supabase
     .from('businesses')
     .update({
-      status: 'inactive',
+      status: 'closed',
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
