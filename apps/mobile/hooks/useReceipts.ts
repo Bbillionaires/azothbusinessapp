@@ -22,9 +22,13 @@ export interface ReceiptRow {
   merchant_name: string | null;
   receipt_date: string | null;
   receipt_number: string | null;
-  status: 'pending' | 'approved' | 'rejected' | 'flagged';
+  status: 'pending' | 'approved' | 'rejected' | 'flagged' | 'duplicate' | 'suspicious' | 'resubmission_requested';
   fraud_score: number | null;
+  fraud_flags: string[] | null;
   points_awarded: number | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  review_notes: string | null;
   created_at: string;
   updated_at: string;
   businesses?: {

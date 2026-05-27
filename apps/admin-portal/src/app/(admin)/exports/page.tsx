@@ -24,7 +24,7 @@ const EXPORTS: ExportConfig[] = [
     icon: Users,
     color: 'text-blue-400',
     filename: 'local-first-rewards-users.csv',
-    fields: ['id', 'email', 'full_name', 'role', 'tier', 'points_balance', 'city', 'created_at', 'last_seen_at'],
+    fields: ['id', 'email', 'full_name', 'role', 'tier', 'points_balance', 'city', 'created_at', 'last_active_at'],
   },
   {
     type: 'businesses',

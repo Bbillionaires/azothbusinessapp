@@ -32,8 +32,10 @@ export interface JobPosting {
   salary_type: 'hourly' | 'annual' | null;
   city: string | null;
   state: string | null;
+  location: string | null;
   is_remote: boolean;
   is_active: boolean;
+  experience_level: 'entry' | 'mid' | 'senior' | 'executive' | null;
   application_count: number;
   expires_at: string | null;
   created_at: string;
