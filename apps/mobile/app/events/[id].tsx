@@ -35,7 +35,7 @@ interface EventData {
   state: string | null;
   image_url: string | null;
   is_free: boolean;
-  ticket_price: number | null;
+  price: number | null;
   max_attendees: number | null;
   current_attendees: number;
   points_reward: number;
@@ -186,7 +186,7 @@ export default function EventDetailScreen() {
               <View>
                 <Text style={styles.detailLabel}>Admission</Text>
                 <Text style={styles.detailValue}>
-                  {event.is_free ? '🎁 Free Entry' : event.ticket_price ? `$${event.ticket_price}` : 'See details'}
+                  {event.is_free ? '🎁 Free Entry' : event.price ? `$${event.price}` : 'See details'}
                 </Text>
               </View>
             </View>

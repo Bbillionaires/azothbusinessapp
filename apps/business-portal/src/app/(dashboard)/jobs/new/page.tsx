@@ -15,7 +15,7 @@ import { createBrowserClient } from '@supabase/ssr';
 const schema = z.object({
   title: z.string().min(3, 'Job title is required'),
   department: z.string().optional(),
-  type: z.enum(['full-time', 'part-time', 'contract', 'internship']),
+  type: z.enum(['full-time', 'part-time', 'contract', 'internship', 'volunteer']),
   location: z.string().min(2, 'Location is required'),
   salaryType: z.enum(['hourly', 'annual']),
   salaryMin: z.coerce.number().positive('Required'),
@@ -50,7 +50,7 @@ export default function NewJobPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { type: 'full-time', salaryType: 'annual' },
+    defaultValues: { type: 'full-time' as const, salaryType: 'annual' as const },
   });
 
   async function onSubmit(data: FormData) {
@@ -61,7 +61,7 @@ export default function NewJobPage() {
     // Convert enum values: full-time → full_time etc.
     const typeMap: Record<string, string> = {
       'full-time': 'full_time', 'part-time': 'part_time',
-      'contract': 'contract', 'internship': 'internship',
+      'contract': 'contract', 'internship': 'internship', 'volunteer': 'volunteer',
     };
 
     const res = await fetch('/api/jobs', {
@@ -108,6 +108,7 @@ export default function NewJobPage() {
               { value: 'part-time', label: 'Part-Time' },
               { value: 'contract', label: 'Contract' },
               { value: 'internship', label: 'Internship' },
+              { value: 'volunteer', label: 'Volunteer' },
             ]}
             {...register('type')}
           />

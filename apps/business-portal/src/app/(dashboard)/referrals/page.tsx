@@ -68,7 +68,7 @@ export default function ReferralsPage() {
 
       const [bizResult, linkResult, eventsResult] = await Promise.all([
         supabase.from('businesses').select('id').eq('owner_id', user.id).eq('status', 'active').limit(1).maybeSingle(),
-        supabase.from('referral_links').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('referral_links').select('*').eq('referrer_id', user.id).eq('referrer_type', 'business').maybeSingle(),
         supabase
           .from('referral_events')
           .select('*, referred:referred_id(full_name, email)')

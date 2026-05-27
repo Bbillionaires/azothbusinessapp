@@ -217,7 +217,7 @@ export default function ReferralsScreen() {
 
   // Stats derived from events
   const totalReferrals = events.length;
-  const successful = events.filter((e) => e.status === 'converted' || e.status === 'completed').length;
+  const successful = events.filter((e) => e.status === 'completed').length;
   const totalEarned = referralLink?.earnings
     ?? events.reduce((sum, e) => sum + (e.cash_awarded ?? 0), 0);
 
