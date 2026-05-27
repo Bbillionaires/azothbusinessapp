@@ -143,7 +143,7 @@ export default function ReferralsPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const totalEarned = events.filter(e => e.status === 'completed').reduce((s, e) => s + e.cash_awarded, 0);
+  const totalEarned = events.filter(e => e.status === 'completed').reduce((s, e) => s + (e.cash_awarded ?? 0), 0);
   const pendingCount = events.filter(e => e.status === 'pending').length;
 
   return (
