@@ -126,8 +126,8 @@ export interface PlatformUser {
   rejected_receipts: number;
   fraud_receipts: number;
   approval_rate: number;
-  is_suspended: boolean;
-  suspension_reason?: string;
+  is_banned: boolean;
+  ban_reason?: string;
   legend_tier?: LegendTier;
 }
 

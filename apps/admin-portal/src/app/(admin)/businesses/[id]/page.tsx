@@ -71,7 +71,7 @@ export default function BusinessDetailPage() {
 
       const [followRes, receiptRes, jobRes, eventRes] = await Promise.all([
         supabase.from('business_followers').select('id', { count: 'exact', head: true }).eq('business_id', id),
-        supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('business_id', id).gte('submitted_at', monthStart),
+        supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('business_id', id).gte('created_at', monthStart),
         supabase.from('job_postings').select('id', { count: 'exact', head: true }).eq('business_id', id).eq('is_active', true),
         supabase.from('events').select('id', { count: 'exact', head: true }).eq('business_id', id).eq('status', 'published').gte('start_at', now),
       ]);

@@ -57,8 +57,8 @@ export async function GET() {
       const { count } = await svc
         .from('receipts')
         .select('id', { count: 'exact', head: true })
-        .gte('submitted_at', m.start)
-        .lte('submitted_at', m.end + 'T23:59:59Z')
+        .gte('created_at', m.start)
+        .lte('created_at', m.end + 'T23:59:59Z')
         .eq('status', 'approved');
       receiptsByMonth[m.label] = count ?? 0;
     }

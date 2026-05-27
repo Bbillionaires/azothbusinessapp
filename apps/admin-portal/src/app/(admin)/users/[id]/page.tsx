@@ -187,8 +187,8 @@ export default function UserDetailPage() {
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase ${tierColor}`}>{user.tier}</span>
-          {user.status === 'suspended' && (
-            <span className="text-xs bg-red-900/40 text-red-400 px-3 py-1 rounded-full font-bold">SUSPENDED</span>
+          {(user as any).is_banned && (
+            <span className="text-xs bg-red-900/40 text-red-400 px-3 py-1 rounded-full font-bold">BANNED</span>
           )}
           {msg && (
             <span className={`text-xs px-3 py-1 rounded-full ${msg.type === 'success' ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400'}`}>
@@ -207,7 +207,7 @@ export default function UserDetailPage() {
               { label: 'User ID', value: String(user.id) },
               { label: 'Phone', value: user.phone ?? '—' },
               { label: 'Role', value: user.role },
-              { label: 'Status', value: user.status },
+              { label: 'Status', value: (user as any).is_banned ? 'Banned' : 'Active' },
               { label: 'Joined', value: format(new Date(user.created_at), 'MMM d, yyyy') },
               { label: 'Referral Code', value: user.referral_code ?? '—' },
             ].map((item, i) => (
