@@ -128,7 +128,7 @@ export interface PlatformUser {
   approval_rate: number;
   is_banned: boolean;
   ban_reason?: string;
-  legend_tier?: LegendTier;
+  tier?: LegendTier;
 }
 
 export interface Dispute {

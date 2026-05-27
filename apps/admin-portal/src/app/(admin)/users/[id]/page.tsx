@@ -121,12 +121,16 @@ export default function UserDetailPage() {
   const doAction = async (action: string) => {
     setActionLoading(action);
     if (action === 'suspend') {
-      const { error } = await supabase.from('profiles').update({ status: 'suspended' }).eq('id', id as string);
-      if (!error) { setUser(prev => prev ? { ...prev, status: 'suspended' } : null); showMsg('Account suspended'); }
-      else showMsg('Failed: ' + error.message, 'error');
+      const res = await fetch(`/api/users/${id}/suspend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Suspended by admin' }),
+      });
+      if (res.ok) { setUser(prev => prev ? { ...prev, is_banned: true } as any : null); showMsg('Account suspended'); }
+      else { const d = await res.json(); showMsg('Failed: ' + (d.error ?? 'Unknown error'), 'error'); }
     } else if (action === 'activate') {
-      const { error } = await supabase.from('profiles').update({ status: 'active' }).eq('id', id as string);
-      if (!error) { setUser(prev => prev ? { ...prev, status: 'active' } : null); showMsg('Account activated'); }
+      const { error } = await supabase.from('profiles').update({ is_banned: false, ban_reason: null }).eq('id', id as string);
+      if (!error) { setUser(prev => prev ? { ...prev, is_banned: false } as any : null); showMsg('Account activated'); }
       else showMsg('Failed: ' + error.message, 'error');
     } else if (action === 'clear_fraud') {
       const { error } = await supabase.from('receipts').update({ fraud_score: 0, status: 'pending' }).eq('user_id', id as string).gte('fraud_score', 90).in('status', ['pending', 'flagged']);
@@ -307,7 +311,7 @@ export default function UserDetailPage() {
           </div>
 
           <div className="space-y-2">
-            {user.status !== 'suspended' ? (
+            {!(user as any).is_banned ? (
               <button
                 onClick={() => doAction('suspend')}
                 disabled={actionLoading === 'suspend'}

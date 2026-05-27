@@ -31,12 +31,12 @@ interface LeaderboardEntry {
   user_id: string;
   rank: number;
   score: number | null;
-  period_type: string;
-  leaderboard_type: string;
+  period: string;
+  category: string;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;
-    legend_tier: string | null;
+    tier: string | null;
   };
 }
 
@@ -90,7 +90,7 @@ interface EntryRowProps {
 
 function EntryRow({ entry, activeTab, isCurrentUser }: EntryRowProps) {
   const medal = RANK_MEDALS[entry.rank];
-  const tier = entry.profiles?.legend_tier ?? 'bronze';
+  const tier = entry.profiles?.tier ?? 'bronze';
   const tierInfo = TierColors[tier] ?? TierColors.bronze;
   const name = maskName(entry.profiles?.full_name);
 
@@ -158,9 +158,9 @@ export default function LeaderboardScreen() {
     try {
       const { data, error } = await supabase
         .from('leaderboard_entries')
-        .select('*, profiles(full_name, avatar_url, legend_tier)')
-        .eq('period_type', 'monthly')
-        .eq('leaderboard_type', tab)
+        .select('*, profiles(full_name, avatar_url, tier)')
+        .eq('period', 'monthly')
+        .eq('category', tab)
         .order('rank', { ascending: true })
         .limit(50);
 

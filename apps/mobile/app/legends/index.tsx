@@ -29,9 +29,9 @@ interface CommunityLegend {
   id: string;
   user_id: string;
   tier: string;
-  total_impact_score: number | null;
+  impact_score: number | null;
   is_permanent: boolean;
-  created_at: string;
+  inducted_at: string;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;
@@ -107,8 +107,8 @@ function HallCard({ legend }: HallCardProps) {
         </View>
       </View>
       <Text style={styles.hallName} numberOfLines={1}>{name}</Text>
-      <Text style={styles.hallScore}>{formatScore(legend.total_impact_score)} pts</Text>
-      <Text style={styles.hallSince}>Since {memberSinceYear(legend.created_at)}</Text>
+      <Text style={styles.hallScore}>{formatScore(legend.impact_score)} pts</Text>
+      <Text style={styles.hallSince}>Since {memberSinceYear(legend.inducted_at)}</Text>
     </View>
   );
 }
@@ -131,7 +131,7 @@ function LegendRow({ legend }: LegendRowProps) {
       <View style={styles.legendInfo}>
         <Text style={styles.legendName} numberOfLines={1}>{name}</Text>
         <Text style={styles.legendMeta}>
-          Member since {memberSinceYear(legend.created_at)}
+          Member since {memberSinceYear(legend.inducted_at)}
           {legend.is_permanent ? ' · Permanent' : ''}
         </Text>
       </View>
@@ -142,7 +142,7 @@ function LegendRow({ legend }: LegendRowProps) {
           </Text>
         </View>
         <Text style={[styles.legendScore, { color: config.color }]}>
-          {formatScore(legend.total_impact_score)} pts
+          {formatScore(legend.impact_score)} pts
         </Text>
       </View>
     </View>
@@ -167,7 +167,7 @@ export default function LegendsScreen() {
         .from('community_legends')
         .select('*, profiles(full_name, avatar_url)')
         .order('tier', { ascending: false })
-        .order('total_impact_score', { ascending: false });
+        .order('impact_score', { ascending: false });
 
       if (!error && data) {
         setLegends(data as CommunityLegend[]);
@@ -194,7 +194,7 @@ export default function LegendsScreen() {
 
   // User's own legend entry (if they have one)
   const myLegend = user?.id ? legends.find((l) => l.user_id === user.id) : null;
-  const userTier = myLegend?.tier ?? (profile as any)?.legend_tier ?? 'bronze';
+  const userTier = myLegend?.tier ?? (profile as any)?.tier ?? 'bronze';
   const userConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.bronze;
 
   return (
@@ -309,7 +309,7 @@ export default function LegendsScreen() {
                 <View style={styles.journeyCurrentRow}>
                   <Text style={styles.journeyLabel}>Impact Score</Text>
                   <Text style={[styles.journeyScore, { color: userConfig.color }]}>
-                    {formatScore(myLegend.total_impact_score)} pts
+                    {formatScore(myLegend.impact_score)} pts
                   </Text>
                 </View>
               ) : null}

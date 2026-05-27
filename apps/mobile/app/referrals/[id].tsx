@@ -121,13 +121,9 @@ export default function ReferralProgramDetailScreen() {
             setApplying(true);
             try {
               await supabase.from('referral_applications').insert({
-                program_id: program.id,
-                business_id: program.business_id,
-                applicant_id: user.id,
-                applicant_name: profile?.full_name ?? null,
-                applicant_email: user.email ?? null,
-                status: 'pending',
-                applied_at: new Date().toISOString(),
+                marketplace_id: program.id,
+                user_id: user.id,
+                status: 'applied',
               });
             } catch (_) {
               // Table may not exist yet — show success regardless
