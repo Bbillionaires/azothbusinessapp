@@ -42,46 +42,50 @@ Deno.serve(async (req: Request) => {
     results.user_snapshots = snapshotCount;
 
     // 2. Compute economic dashboard data per city
-    const { data: cities } = await serviceClient
+    const { data: cityRows } = await serviceClient
       .from('businesses')
-      .select('city')
+      .select('city, state')
       .eq('status', 'active');
 
-    const uniqueCities = [...new Set((cities ?? []).map((b: any) => b.city))];
+    // Unique city+state pairs
+    const cityStateMap = new Map<string, { city: string; state: string }>();
+    for (const b of (cityRows ?? []) as Array<{ city: string | null; state: string | null }>) {
+      if (b.city && b.state) {
+        cityStateMap.set(`${b.city}|${b.state}`, { city: b.city, state: b.state });
+      }
+    }
+    const uniqueCityStates = Array.from(cityStateMap.values());
+
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const periodEnd = now.toISOString().split('T')[0];
 
-    for (const city of uniqueCities) {
+    for (const { city, state } of uniqueCityStates) {
       const [spendingRes, businessRes, jobsRes, receiptsRes, redemptionsRes] = await Promise.all([
-        // Total local spending
         serviceClient.rpc('city_spending_total', { p_city: city, p_start: periodStart, p_end: periodEnd }),
-        // New businesses
-        serviceClient.from('businesses').select('id', { count: 'exact', head: true }).eq('city', city).gte('created_at', periodStart),
-        // Job postings
+        serviceClient.from('businesses').select('id', { count: 'exact', head: true }).eq('city', city).eq('state', state).gte('created_at', periodStart),
         serviceClient.from('job_postings').select('id', { count: 'exact', head: true })
           .in('business_id',
-            (await serviceClient.from('businesses').select('id').eq('city', city)).data?.map((b: any) => b.id) ?? []
+            (await serviceClient.from('businesses').select('id').eq('city', city).eq('state', state)).data?.map((b: any) => b.id) ?? []
           ).eq('is_active', true),
-        // Receipt volume
         serviceClient.from('receipts').select('id', { count: 'exact', head: true }).gte('receipt_date', periodStart),
-        // Reward redemptions
         serviceClient.from('reward_redemptions').select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('created_at', periodStart),
       ]);
 
       await serviceClient.from('economic_dashboard_data').upsert({
         city,
+        state,
         period_start: periodStart,
         period_end: periodEnd,
+        period_type: 'monthly',
         total_local_spending: spendingRes.data ?? 0,
         new_businesses: businessRes.count ?? 0,
         job_postings: jobsRes.count ?? 0,
         receipt_volume: receiptsRes.count ?? 0,
         reward_redemptions: redemptionsRes.count ?? 0,
-        created_at: new Date().toISOString(),
-      }, { onConflict: 'city,period_start' });
+      }, { onConflict: 'city,state,period_start,period_end,period_type' });
     }
-    results.cities_computed = uniqueCities.length;
+    results.cities_computed = uniqueCityStates.length;
 
     // 3. Update leaderboards
     await updateLeaderboards(serviceClient);
@@ -158,9 +162,14 @@ async function updateLeaderboards(supabase: any) {
       }));
 
       if (entries.length > 0) {
-        await supabase.from('leaderboard_entries').upsert(entries, {
-          onConflict: 'user_id,period,category',
-        });
+        // Delete old global (no city) entries for this period+category, then re-insert
+        await supabase
+          .from('leaderboard_entries')
+          .delete()
+          .eq('period', period)
+          .eq('category', category)
+          .is('city', null);
+        await supabase.from('leaderboard_entries').insert(entries);
       }
     }
   }

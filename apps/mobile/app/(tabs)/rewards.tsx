@@ -15,7 +15,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { RewardCard } from '../../components/rewards/RewardCard';
 import { PointsHistory } from '../../components/rewards/PointsHistory';
 import { THEME } from '../../lib/theme';
-import { TIER_THRESHOLDS } from '../../../packages/shared/src/constants/points';
+import { TIER_THRESHOLDS } from '../../../../packages/shared/src/constants/points';
 
 const REWARD_CATEGORIES = ['All', 'Discounts', 'Gift Cards', 'Coupons', 'Events', 'Community'];
 
