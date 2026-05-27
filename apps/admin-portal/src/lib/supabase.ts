@@ -168,11 +168,12 @@ export interface CommunityLegend {
   full_name: string;
   avatar_url?: string;
   tier: LegendTier;
-  referrals: number;
-  spending_influenced: number;
-  reviews: number;
+  referrals_count: number;
+  local_spending_total: number;
+  reviews_count: number;
   impact_score: number;
-  promoted_at: string;
-  promoted_by: string;
-  is_hall_of_legends: boolean;
+  inducted_at: string;
+  is_permanent: boolean;
+  legend_bio?: string | null;
+  profiles?: { full_name?: string; avatar_url?: string; tier?: string } | null;
 }
