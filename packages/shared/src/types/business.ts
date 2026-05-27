@@ -101,6 +101,11 @@ export interface Business {
   // Aggregates
   total_reviews: number;
   average_rating: number | null;
+  active_offers_count: number;
+
+  // Feature tracking
+  featured_at: string | null;
+  featured_by: string | null;
 
   created_at: string;
   updated_at: string;

@@ -38,6 +38,8 @@ export interface JobPosting {
   is_remote: boolean;
   is_hybrid: boolean;
 
+  experience_level: 'entry' | 'mid' | 'senior' | 'executive' | null;
+
   requirements: string[];
   benefits: string[];
 
