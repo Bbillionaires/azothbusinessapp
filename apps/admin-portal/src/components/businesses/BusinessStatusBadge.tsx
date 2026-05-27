@@ -21,6 +21,10 @@ const STATUS_CONFIG: Record<BusinessStatus, { label: string; styles: string }> =
     label: 'Under Review',
     styles: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
   },
+  closed: {
+    label: 'Closed',
+    styles: 'bg-slate-500/15 text-slate-500 border-slate-500/25',
+  },
 };
 
 interface BusinessStatusBadgeProps {

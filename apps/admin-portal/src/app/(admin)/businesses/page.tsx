@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Building2, MapPin, Star, Loader2 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
-import { BusinessStatusBadge } from '../../../components/businesses/BusinessStatusBadge';
-import { VerificationActions } from '../../../components/businesses/VerificationActions';
+import BusinessStatusBadge from '../../../components/businesses/BusinessStatusBadge';
+import VerificationActions from '../../../components/businesses/VerificationActions';
 
 interface BusinessRow {
   id: string;
@@ -203,13 +203,22 @@ export default function BusinessesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <VerificationActions
-                        businessId={biz.id}
-                        currentStatus={biz.status ?? 'pending'}
-                        onApprove={() => handleApprove(biz.id)}
-                        onSuspend={() => handleSuspend(biz.id)}
-                        onView={() => router.push(`/businesses/${biz.id}`)}
-                      />
+                      <div className="flex items-center gap-2">
+                        <VerificationActions
+                          businessId={biz.id}
+                          businessName={biz.name ?? ''}
+                          currentStatus={(biz.status ?? 'pending') as import('@/lib/supabase').BusinessStatus}
+                          onStatusChange={(newStatus) => {
+                            setBusinesses(prev => prev.map(b => b.id === biz.id ? { ...b, status: newStatus } : b));
+                          }}
+                        />
+                        <button
+                          onClick={() => router.push(`/businesses/${biz.id}`)}
+                          className="text-xs text-green-400 hover:text-green-300 font-medium transition-colors"
+                        >
+                          View
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

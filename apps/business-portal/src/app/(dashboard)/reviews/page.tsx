@@ -23,7 +23,7 @@ type Review = {
   body: string;
   tags: string[] | null;
   status: string;
-  weighted_score: number;
+  weight: number;
   helpful_count: number;
   created_at: string;
   reviewer_id: string;
@@ -75,7 +75,7 @@ export default function ReviewsPage() {
         .select('*, profiles(full_name, tier), review_responses(id, body, created_at)')
         .eq('business_id', businessId)
         .eq('status', 'published')
-        .order('weighted_score', { ascending: false });
+        .order('weight', { ascending: false });
       setReviews((data ?? []) as Review[]);
       setLoading(false);
     }

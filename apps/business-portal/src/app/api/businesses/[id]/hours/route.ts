@@ -3,9 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 interface DayHours {
-  open: boolean
-  from: string
-  to: string
+  open: string
+  close: string
+  closed: boolean
 }
 
 interface PatchHoursBody {
@@ -16,23 +16,23 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {}
         },
       },
     }
   )
 
-  // Verify authenticated session
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-  if (sessionError || !session) {
+  const { data: { user }, error: sessionError } = await supabase.auth.getUser()
+  if (sessionError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -49,7 +49,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   }
 
-  if (business.owner_id !== session.user.id) {
+  if (business.owner_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

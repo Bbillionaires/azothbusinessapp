@@ -47,7 +47,7 @@ export type AdminRole = 'admin_staff' | 'admin_manager' | 'super_admin';
 
 export type ReceiptStatus = 'pending' | 'approved' | 'rejected' | 'flagged' | 'duplicate' | 'suspicious' | 'resubmission_requested';
 
-export type BusinessStatus = 'pending' | 'active' | 'suspended' | 'rejected' | 'under_review';
+export type BusinessStatus = 'pending' | 'active' | 'suspended' | 'closed' | 'rejected' | 'under_review';
 
 export type LegendTier =
   | 'bronze'

@@ -2,7 +2,7 @@
 // Business Types
 // =============================================================================
 
-export type BusinessStatus = 'pending' | 'active' | 'suspended' | 'closed';
+export type BusinessStatus = 'pending' | 'active' | 'suspended' | 'closed' | 'rejected' | 'under_review';
 
 export type VerificationLevel = 'none' | 'basic' | 'pro' | 'elite' | 'community_trusted';
 

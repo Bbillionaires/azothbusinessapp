@@ -45,7 +45,7 @@ export interface BusinessProfile {
   average_rating: number | null;
   created_at: string;
   updated_at: string | null;
-  business_social: Array<{ id: string; platform: string; url: string }> | null;
+  business_social: Array<{ id: string; platform: string; url: string; handle?: string | null }> | null;
   business_photos: Array<{ id: string; url: string; is_cover: boolean }> | null;
   business_services: Array<{ id: string; name: string; price: number | null }> | null;
 }

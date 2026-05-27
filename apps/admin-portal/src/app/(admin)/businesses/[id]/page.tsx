@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { format } from 'date-fns';
 import { ArrowLeft, ShieldCheck, MapPin, Phone, Globe, Star, Users, Mail, RefreshCw } from 'lucide-react';
-import { BusinessStatusBadge } from '../../../../components/businesses/BusinessStatusBadge';
+import BusinessStatusBadge from '../../../../components/businesses/BusinessStatusBadge';
 
 interface BusinessDetail {
   id: string;
