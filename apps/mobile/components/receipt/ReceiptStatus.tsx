@@ -34,11 +34,23 @@ const STATUS_CONFIG = {
     bg: Colors.surfaceAlt,
     icon: 'copy-outline' as const,
   },
-  fraud_flagged: {
+  flagged: {
+    label: 'Flagged',
+    color: Colors.error,
+    bg: Colors.errorBg,
+    icon: 'flag-outline' as const,
+  },
+  suspicious: {
     label: 'Under Review',
     color: Colors.error,
     bg: Colors.errorBg,
     icon: 'alert-circle-outline' as const,
+  },
+  resubmission_requested: {
+    label: 'Resubmit Required',
+    color: Colors.warning,
+    bg: Colors.warningBg,
+    icon: 'refresh-circle-outline' as const,
   },
 };
 

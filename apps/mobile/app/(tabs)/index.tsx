@@ -66,7 +66,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const { locationLabel, requestPermission, hasPermission } = useLocation();
-  const { businesses, isLoading: bizLoading, refetch } = useBusinesses({ searchQuery: '' });
+  const { data: businesses = [], loading: bizLoading, refetch } = useBusinesses({});
   const [refreshing, setRefreshing] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDisplay[]>([]);
   const [currentUserRank, setCurrentUserRank] = useState<number | undefined>(undefined);

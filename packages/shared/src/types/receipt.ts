@@ -6,8 +6,10 @@ export type ReceiptStatus =
   | 'pending'
   | 'approved'
   | 'rejected'
+  | 'flagged'
   | 'duplicate'
-  | 'suspicious';
+  | 'suspicious'
+  | 'resubmission_requested';
 
 export type ReceiptFraudFlag =
   | 'duplicate_hash'
