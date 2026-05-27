@@ -176,8 +176,8 @@ async function getUserStats(userId: string, supabase: any): Promise<UserStats> {
       supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'going'),
       supabase.from('business_followers').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('spending_streaks').select('current_streak').eq('user_id', userId).single(),
-      supabase.from('job_applications').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-      supabase.from('community_legends').select('id').eq('user_id', userId).eq('is_active', true).maybeSingle(),
+      supabase.from('job_applications').select('id', { count: 'exact', head: true }).eq('applicant_id', userId),
+      supabase.from('community_legends').select('id').eq('user_id', userId).maybeSingle(),
     ]);
 
   const receipts = receiptsRes.data ?? [];

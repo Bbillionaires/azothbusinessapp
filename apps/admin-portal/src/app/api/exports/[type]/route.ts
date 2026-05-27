@@ -29,7 +29,7 @@ async function exportUsers(serviceClient: ReturnType<typeof createSupabaseServic
   const { data, error } = await serviceClient
     .from('profiles')
     .select(
-      'id, email, full_name, role, tier, points_balance, city, created_at, last_seen_at'
+      'id, email, full_name, role, tier, points_balance, city, created_at, last_active_at'
     )
     .order('created_at', { ascending: false })
 

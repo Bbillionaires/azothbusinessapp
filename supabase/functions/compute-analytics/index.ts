@@ -204,7 +204,7 @@ async function updateOfferAnalytics(supabase: any, now: Date) {
   const { data: redemptions } = await supabase
     .from('offer_redemptions')
     .select('business_id')
-    .gte('created_at', monthStart)
+    .gte('redeemed_at', monthStart)
     .eq('status', 'completed');
 
   if (redemptions && redemptions.length > 0) {

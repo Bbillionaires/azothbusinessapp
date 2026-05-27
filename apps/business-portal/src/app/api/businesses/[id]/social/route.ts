@@ -8,17 +8,11 @@ function buildSupabaseClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
+        getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server Component context — safe to ignore
-          }
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+          } catch {}
         },
       },
     }
@@ -27,21 +21,17 @@ function buildSupabaseClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
 
 type RouteParams = { params: Promise<{ id: string }> }
 
-// PATCH /api/businesses/[id]/social — upsert social links (ownership verified)
+const ALLOWED_PLATFORMS = ['website', 'instagram', 'facebook', 'twitter', 'tiktok', 'youtube', 'linkedin'] as const
+
+// PATCH /api/businesses/[id]/social — upsert social links (one row per platform)
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const cookieStore = await cookies()
   const supabase = buildSupabaseClient(cookieStore)
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Verify ownership
   const { data: business, error: bizError } = await supabase
     .from('businesses')
     .select('id')
@@ -60,33 +50,34 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // Allowlist of social fields
-  const ALLOWED_FIELDS = ['website', 'instagram', 'facebook', 'twitter', 'tiktok', 'youtube', 'linkedin']
-  const safePayload: Record<string, string | null> = {}
+  const toUpsert: { business_id: string; platform: string; url: string }[] = []
+  const toDelete: string[] = []
 
-  for (const field of ALLOWED_FIELDS) {
-    if (field in body) {
-      const val = body[field]
-      safePayload[field] = typeof val === 'string' && val.trim().length > 0 ? val.trim() : null
+  for (const platform of ALLOWED_PLATFORMS) {
+    const val = body[platform]
+    const url = typeof val === 'string' ? val.trim() : ''
+    if (url) {
+      toUpsert.push({ business_id: id, platform, url })
+    } else {
+      toDelete.push(platform)
     }
   }
 
-  const { data, error } = await supabase
-    .from('business_social')
-    .upsert(
-      {
-        business_id: id,
-        ...safePayload,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'business_id' }
-    )
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (toUpsert.length > 0) {
+    const { error } = await supabase
+      .from('business_social')
+      .upsert(toUpsert, { onConflict: 'business_id,platform' })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ social: data })
+  if (toDelete.length > 0) {
+    const { error } = await supabase
+      .from('business_social')
+      .delete()
+      .eq('business_id', id)
+      .in('platform', toDelete)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
 }

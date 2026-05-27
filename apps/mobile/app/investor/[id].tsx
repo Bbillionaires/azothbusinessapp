@@ -128,12 +128,10 @@ export default function InvestorDetailScreen() {
       // Insert into investor_interest table (gracefully handles missing table)
       await supabase.from('investor_interest').insert({
         business_id: id,
-        user_id: user?.id ?? null,
-        contact_name: contactName.trim(),
-        contact_email: contactEmail.trim(),
-        contact_phone: contactPhone.trim() || null,
+        investor_name: contactName.trim(),
+        investor_email: contactEmail.trim(),
+        investor_phone: contactPhone.trim() || null,
         message: message.trim(),
-        created_at: new Date().toISOString(),
       });
     } catch (_) {
       // Table may not exist yet — still show success to user

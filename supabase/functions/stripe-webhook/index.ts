@@ -107,8 +107,8 @@ async function handleCheckoutCompleted(session: any, supabase: any) {
       .insert({
         business_id,
         level,
-        status: 'payment_received',
-        documents: {},
+        status: 'pending',
+        documents: [],
         notes: `Payment received via Stripe. Session: ${session.id}`,
       });
 

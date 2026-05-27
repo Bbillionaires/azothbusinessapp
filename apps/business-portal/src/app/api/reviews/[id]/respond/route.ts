@@ -84,8 +84,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       {
         review_id: reviewId,
         business_id: review.business_id,
-        response_text: response_text.trim(),
-        responded_by: user.id,
+        body: response_text.trim(),
         updated_at: now,
       },
       {

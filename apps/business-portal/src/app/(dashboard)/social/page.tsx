@@ -28,16 +28,9 @@ const EMPTY_LINKS: SocialLinks = {
   linkedin: '',
 }
 
-// TikTok icon — not in lucide, use a simple SVG
 function TikTokIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.75a8.27 8.27 0 0 0 4.84 1.55V6.85a4.85 4.85 0 0 1-1.07-.16z" />
     </svg>
   )
@@ -50,54 +43,13 @@ const FIELDS: Array<{
   icon: React.ReactNode
   prefix?: string
 }> = [
-  {
-    key: 'website',
-    label: 'Website',
-    placeholder: 'https://yourbusiness.com',
-    icon: <Globe size={16} />,
-  },
-  {
-    key: 'instagram',
-    label: 'Instagram',
-    placeholder: 'yourbusiness',
-    icon: <Instagram size={16} />,
-    prefix: 'instagram.com/',
-  },
-  {
-    key: 'facebook',
-    label: 'Facebook',
-    placeholder: 'yourbusiness',
-    icon: <Facebook size={16} />,
-    prefix: 'facebook.com/',
-  },
-  {
-    key: 'twitter',
-    label: 'X / Twitter',
-    placeholder: 'yourbusiness',
-    icon: <Twitter size={16} />,
-    prefix: 'x.com/',
-  },
-  {
-    key: 'tiktok',
-    label: 'TikTok',
-    placeholder: '@yourbusiness',
-    icon: <TikTokIcon size={16} />,
-    prefix: 'tiktok.com/',
-  },
-  {
-    key: 'youtube',
-    label: 'YouTube',
-    placeholder: '@yourchannel',
-    icon: <Youtube size={16} />,
-    prefix: 'youtube.com/',
-  },
-  {
-    key: 'linkedin',
-    label: 'LinkedIn',
-    placeholder: 'company/yourbusiness',
-    icon: <Linkedin size={16} />,
-    prefix: 'linkedin.com/',
-  },
+  { key: 'website', label: 'Website', placeholder: 'https://yourbusiness.com', icon: <Globe size={16} /> },
+  { key: 'instagram', label: 'Instagram', placeholder: 'yourbusiness', icon: <Instagram size={16} />, prefix: 'instagram.com/' },
+  { key: 'facebook', label: 'Facebook', placeholder: 'yourbusiness', icon: <Facebook size={16} />, prefix: 'facebook.com/' },
+  { key: 'twitter', label: 'X / Twitter', placeholder: 'yourbusiness', icon: <Twitter size={16} />, prefix: 'x.com/' },
+  { key: 'tiktok', label: 'TikTok', placeholder: '@yourbusiness', icon: <TikTokIcon size={16} />, prefix: 'tiktok.com/' },
+  { key: 'youtube', label: 'YouTube', placeholder: '@yourchannel', icon: <Youtube size={16} />, prefix: 'youtube.com/' },
+  { key: 'linkedin', label: 'LinkedIn', placeholder: 'company/yourbusiness', icon: <Linkedin size={16} />, prefix: 'linkedin.com/' },
 ]
 
 function SocialContent() {
@@ -116,20 +68,17 @@ function SocialContent() {
       try {
         const { data } = await supabase
           .from('business_social')
-          .select('website, instagram, facebook, twitter, tiktok, youtube, linkedin')
+          .select('platform, url')
           .eq('business_id', business!.id)
-          .single()
 
         if (data) {
-          setLinks({
-            website: data.website ?? '',
-            instagram: data.instagram ?? '',
-            facebook: data.facebook ?? '',
-            twitter: data.twitter ?? '',
-            tiktok: data.tiktok ?? '',
-            youtube: data.youtube ?? '',
-            linkedin: data.linkedin ?? '',
-          })
+          const mapped: Partial<SocialLinks> = {}
+          for (const row of data) {
+            if (row.platform in EMPTY_LINKS) {
+              mapped[row.platform as keyof SocialLinks] = row.url ?? ''
+            }
+          }
+          setLinks({ ...EMPTY_LINKS, ...mapped })
         }
       } finally {
         setLoading(false)
