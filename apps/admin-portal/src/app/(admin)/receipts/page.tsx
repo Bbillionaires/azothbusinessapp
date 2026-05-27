@@ -260,7 +260,10 @@ export default function ReceiptsPage() {
           </div>
         )}
 
-        <button className="admin-btn-secondary flex items-center gap-1.5">
+        <button
+          onClick={() => window.location.href = '/api/exports/receipts'}
+          className="admin-btn-secondary flex items-center gap-1.5"
+        >
           <Download className="w-4 h-4" />
           Export
         </button>

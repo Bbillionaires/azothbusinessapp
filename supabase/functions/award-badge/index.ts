@@ -167,15 +167,17 @@ Deno.serve(async (req: Request) => {
 });
 
 async function getUserStats(userId: string, supabase: any): Promise<UserStats> {
-  const [profileRes, receiptsRes, reviewsRes, referralsRes, eventsRes, followersRes, streakRes] =
+  const [profileRes, receiptsRes, reviewsRes, referralsRes, eventsRes, followersRes, streakRes, jobAppsRes, legendRes] =
     await Promise.all([
-      supabase.from('profiles').select('tier, points_balance, total_points_earned').eq('id', userId).single(),
+      supabase.from('profiles').select('tier, points_balance, total_points_earned, created_at').eq('id', userId).single(),
       supabase.from('receipts').select('total').eq('user_id', userId).eq('status', 'approved'),
       supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('reviewer_id', userId).eq('status', 'published'),
       supabase.from('referral_events').select('id', { count: 'exact', head: true }).eq('referrer_id', userId).eq('status', 'completed'),
       supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'going'),
       supabase.from('business_followers').select('id', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('spending_streaks').select('current_streak').eq('user_id', userId).single(),
+      supabase.from('job_applications').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      supabase.from('community_legends').select('id').eq('user_id', userId).eq('is_active', true).maybeSingle(),
     ]);
 
   const receipts = receiptsRes.data ?? [];
@@ -193,5 +195,8 @@ async function getUserStats(userId: string, supabase: any): Promise<UserStats> {
     profile_complete: true,
     businesses_followed: followersRes.count ?? 0,
     streak_days: streakRes.data?.current_streak ?? 0,
+    job_applications_count: jobAppsRes.count ?? 0,
+    is_community_legend: legendRes.data != null,
+    account_created_at: profileRes.data?.created_at ?? new Date().toISOString(),
   };
 }

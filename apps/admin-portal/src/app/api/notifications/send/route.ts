@@ -115,15 +115,26 @@ export async function POST(request: Request) {
       }
     }
 
-    // Build payload for the edge function
+    // Build payload for the edge function — maps admin target_type to edge fn format
     const notificationPayload: Record<string, unknown> = {
       title: title.trim(),
       body: messageBody.trim(),
-      target_type,
+      type: 'generic' as const,
     }
 
-    if (resolvedTargetId) {
-      notificationPayload.target_id = resolvedTargetId
+    if (target_type === 'user' && resolvedTargetId) {
+      notificationPayload.user_id = resolvedTargetId
+    } else if (target_type === 'business_followers' && resolvedTargetId) {
+      // Fetch follower user IDs for this business
+      const { data: followers } = await serviceClient
+        .from('business_followers')
+        .select('user_id')
+        .eq('business_id', resolvedTargetId)
+      notificationPayload.user_ids = (followers ?? []).map((f: { user_id: string }) => f.user_id)
+    } else if (target_type === 'topic' && resolvedTargetId) {
+      notificationPayload.topic = resolvedTargetId
+    } else if (target_type === 'all') {
+      notificationPayload.topic = 'all_users'
     }
 
     // Invoke the send-notification Supabase edge function

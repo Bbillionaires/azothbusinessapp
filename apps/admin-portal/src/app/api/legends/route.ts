@@ -9,7 +9,7 @@ const VALID_TIERS: LegendTier[] = [
   'silver',
   'gold',
   'platinum',
-  'diamond',
+  'legend',
   'hall_of_legends',
 ]
 
@@ -45,13 +45,13 @@ export async function GET() {
         user_id,
         tier,
         impact_score,
-        referral_count,
-        review_count,
-        spending_influenced,
+        referrals_count,
+        businesses_referred,
+        local_spending_total,
+        reviews_count,
+        events_attended,
         is_permanent,
-        promoted_at,
-        promoted_by,
-        notes,
+        inducted_at,
         profiles:user_id (
           id,
           full_name,
@@ -154,13 +154,12 @@ export async function POST(request: Request) {
           user_id: body.user_id,
           tier,
           is_permanent: body.is_permanent ?? (tier === 'hall_of_legends'),
-          promoted_at: new Date().toISOString(),
-          promoted_by: user.id,
-          notes: body.notes ?? null,
+          inducted_at: new Date().toISOString(),
+          legend_bio: body.notes ?? null,
         },
         { onConflict: 'user_id' }
       )
-      .select('id, user_id, tier, is_permanent, promoted_at')
+      .select('id, user_id, tier, is_permanent, inducted_at')
       .single()
 
     if (upsertError) {
@@ -181,7 +180,7 @@ export async function POST(request: Request) {
         metadata: {
           tier,
           is_permanent: body.is_permanent ?? (tier === 'hall_of_legends'),
-          notes: body.notes ?? null,
+          legend_bio: body.notes ?? null,
         },
         created_at: new Date().toISOString(),
       })

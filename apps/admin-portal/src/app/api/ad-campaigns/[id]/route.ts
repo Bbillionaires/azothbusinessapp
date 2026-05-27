@@ -4,7 +4,7 @@ import type { AdminRole } from '@/lib/supabase'
 
 const MANAGER_ROLES: AdminRole[] = ['admin_manager', 'super_admin']
 
-const VALID_STATUSES = ['draft', 'pending', 'active', 'paused', 'completed', 'rejected'] as const
+const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'rejected'] as const
 type CampaignStatus = (typeof VALID_STATUSES)[number]
 
 export async function PATCH(

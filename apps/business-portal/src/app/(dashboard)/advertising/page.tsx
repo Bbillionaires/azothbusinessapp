@@ -65,6 +65,7 @@ export default function AdvertisingPage() {
   const [creating, setCreating] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -90,6 +91,28 @@ export default function AdvertisingPage() {
     }
     load();
   }, []);
+
+  async function handleCheckout() {
+    if (!selectedType || !businessId) return;
+    setCheckingOut(true);
+    try {
+      const type = AD_TYPES.find(t => t.id === selectedType)!;
+      const res = await fetch('/api/checkout/advertising', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ad_type: selectedType,
+          business_id: businessId,
+          campaign_name: `${type.name} — ${new Date().toLocaleDateString()}`,
+          budget: type.price,
+        }),
+      });
+      const data = await res.json();
+      if (data.checkout_url) window.location.href = data.checkout_url;
+    } finally {
+      setCheckingOut(false);
+    }
+  }
 
   async function toggleCampaign(id: string, current: string) {
     const newStatus = current === 'active' ? 'paused' : 'active';
@@ -174,10 +197,11 @@ export default function AdvertisingPage() {
               Cancel
             </button>
             <button
-              disabled={!selectedType}
+              disabled={!selectedType || checkingOut}
+              onClick={handleCheckout}
               className="px-6 py-2 bg-green-800 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-40"
             >
-              Continue to Payment
+              {checkingOut ? 'Redirecting…' : 'Continue to Payment'}
             </button>
           </div>
         </div>

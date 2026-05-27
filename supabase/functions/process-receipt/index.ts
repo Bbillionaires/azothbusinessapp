@@ -140,14 +140,6 @@ Deno.serve(async (req: Request) => {
         fingerprint_hash: imageHash,
       });
 
-    // 9. If fraud score is very high, flag the user account
-    if (fraudResult.score >= 80) {
-      await serviceClient
-        .from('profiles')
-        .update({ fraud_flag_count: serviceClient.rpc('increment', { x: 1 }) })
-        .eq('id', user.id);
-    }
-
     // 10. Auto-approve low-fraud receipts (score < 10) from trusted users
     const { data: profile } = await serviceClient
       .from('profiles')

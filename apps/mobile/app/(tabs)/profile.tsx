@@ -8,6 +8,7 @@ import {
   Share,
   Alert,
   Switch,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -73,10 +74,10 @@ export default function ProfileScreen() {
     {
       title: 'My Activity',
       items: [
-        { icon: 'bookmark-outline', label: 'Saved Businesses', onPress: () => {} },
-        { icon: 'star-outline', label: 'My Reviews', onPress: () => {} },
-        { icon: 'briefcase-outline', label: 'Job Applications', onPress: () => {} },
-        { icon: 'calendar-outline', label: 'My Events', onPress: () => {} },
+        { icon: 'bookmark-outline', label: 'Saved Businesses', onPress: () => router.push('/saved-businesses') },
+        { icon: 'star-outline', label: 'My Reviews', onPress: () => router.push('/my-reviews') },
+        { icon: 'briefcase-outline', label: 'Job Applications', onPress: () => router.push('/job-applications') },
+        { icon: 'calendar-outline', label: 'My Events', onPress: () => router.push('/my-events') },
         { icon: 'receipt-outline', label: 'Receipt History', onPress: () => router.push('/(tabs)/scan') },
       ],
     },
@@ -97,7 +98,7 @@ export default function ProfileScreen() {
         { icon: 'notifications-outline', label: 'Notifications', onPress: () => router.push('/notifications') },
         { icon: 'settings-outline', label: 'App Settings', onPress: () => router.push('/settings') },
         { icon: 'people-circle-outline', label: 'Investor Portal', onPress: () => router.push('/investor') },
-        { icon: 'document-text-outline', label: 'Terms of Service', onPress: () => {} },
+        { icon: 'document-text-outline', label: 'Terms of Service', onPress: () => Linking.openURL('https://localfirstrewards.com/terms') },
       ],
     },
   ];

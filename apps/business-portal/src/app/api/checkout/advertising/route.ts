@@ -7,13 +7,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04
 
 const PRICE_IDS: Record<string, string> = {
   sponsored_listing: process.env.STRIPE_PRICE_SPONSORED_LISTING!,
-  banner_ad: process.env.STRIPE_PRICE_BANNER_AD!,
+  banner: process.env.STRIPE_PRICE_BANNER!,
   push_notification: process.env.STRIPE_PRICE_PUSH_NOTIFICATION!,
 };
 
 const AD_NAMES: Record<string, string> = {
   sponsored_listing: 'Sponsored Listing',
-  banner_ad: 'Banner Ad',
+  banner: 'Banner Ad',
   push_notification: 'Push Notification',
 };
 

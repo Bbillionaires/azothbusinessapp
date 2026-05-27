@@ -54,7 +54,7 @@ export type LegendTier =
   | 'silver'
   | 'gold'
   | 'platinum'
-  | 'diamond'
+  | 'legend'
   | 'hall_of_legends';
 
 export interface AdminUser {

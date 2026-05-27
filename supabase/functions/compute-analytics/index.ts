@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
             (await serviceClient.from('businesses').select('id').eq('city', city)).data?.map((b: any) => b.id) ?? []
           ).eq('is_active', true),
         // Receipt volume
-        serviceClient.from('receipts').select('id', { count: 'exact', head: true }).gte('created_at', periodStart),
+        serviceClient.from('receipts').select('id', { count: 'exact', head: true }).gte('receipt_date', periodStart),
         // Reward redemptions
         serviceClient.from('reward_redemptions').select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('created_at', periodStart),
       ]);
@@ -192,7 +192,7 @@ async function updateOfferAnalytics(supabase: any, now: Date) {
       await supabase
         .from('businesses')
         .update({ active_offers_count: 0, updated_at: now.toISOString() })
-        .eq('is_active', true)
+        .eq('status', 'active')
         .gt('active_offers_count', 0)
         .not('id', 'in', `(${businessesWithOffers.map(id => `'${id}'`).join(',')})`);
     }

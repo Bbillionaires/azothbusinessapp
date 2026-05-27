@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle, ShieldAlert, TrendingDown, Eye, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { createBrowserClient } from '@supabase/ssr';
+import { useRouter } from 'next/navigation';
 
 interface FraudReceipt {
   id: string;
   user_id: string;
   business_id?: string;
   merchant_name?: string;
-  amount?: number;
+  total?: number;
   fraud_score: number;
   status: string;
-  submitted_at?: string;
+  created_at?: string;
   fraud_flags?: Record<string, unknown> | string[] | null;
   image_url?: string;
   profiles?: { full_name?: string; email?: string } | null;
@@ -89,9 +90,11 @@ function buildFlagCounts(receipts: FraudReceipt[]) {
 }
 
 export default function FraudPage() {
+  const router = useRouter();
   const [receipts, setReceipts] = useState<FraudReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7 days');
+  const [banningUser, setBanningUser] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -115,13 +118,13 @@ export default function FraudPage() {
     const now = new Date();
     if (timeRange === '24 hours') {
       const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-      query = query.gte('submitted_at', since);
+      query = query.gte('created_at', since);
     } else if (timeRange === '7 days') {
       const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      query = query.gte('submitted_at', since);
+      query = query.gte('created_at', since);
     } else if (timeRange === '30 days') {
       const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      query = query.gte('submitted_at', since);
+      query = query.gte('created_at', since);
     }
 
     const { data, error } = await query;
@@ -137,8 +140,8 @@ export default function FraudPage() {
 
   const highRisk = receipts.filter(r => r.fraud_score >= 70).length;
   const flaggedToday = receipts.filter(r => {
-    if (!r.submitted_at) return false;
-    const d = new Date(r.submitted_at);
+    if (!r.created_at) return false;
+    const d = new Date(r.created_at);
     const now = new Date();
     return d.toDateString() === now.toDateString();
   }).length;
@@ -148,6 +151,18 @@ export default function FraudPage() {
 
   const getUserLabel = (r: FraudReceipt) => r.profiles?.full_name ?? r.profiles?.email ?? `#${r.user_id?.slice(0, 6) ?? '?'}`;
   const getMerchant = (r: FraudReceipt) => r.businesses?.name ?? r.merchant_name ?? 'Unknown';
+
+  async function handleBanUser(receipt: FraudReceipt) {
+    const label = getUserLabel(receipt);
+    if (!confirm(`Suspend user "${label}" for fraudulent activity?`)) return;
+    setBanningUser(receipt.user_id);
+    await fetch(`/api/users/${receipt.user_id}/suspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Fraudulent receipt activity detected', suspend: true }),
+    });
+    setBanningUser(null);
+  }
 
   return (
     <div className="space-y-6">
@@ -286,13 +301,24 @@ export default function FraudPage() {
                         </div>
                         <div className="text-sm text-gray-400 mt-0.5">
                           {getMerchant(receipt)}
-                          {receipt.amount !== undefined ? ` · $${Number(receipt.amount).toFixed(2)}` : ''}
-                          {receipt.submitted_at ? ` · ${new Date(receipt.submitted_at).toLocaleDateString()}` : ''}
+                          {receipt.total !== undefined ? ` · $${Number(receipt.total).toFixed(2)}` : ''}
+                          {receipt.created_at ? ` · ${new Date(receipt.created_at).toLocaleDateString()}` : ''}
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button className="px-3 py-1.5 text-xs bg-green-700 hover:bg-green-600 text-white rounded-lg font-semibold">Review</button>
-                        <button className="px-3 py-1.5 text-xs bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold">Ban</button>
+                        <button
+                          onClick={() => router.push(`/receipts/${receipt.id}`)}
+                          className="px-3 py-1.5 text-xs bg-green-700 hover:bg-green-600 text-white rounded-lg font-semibold"
+                        >
+                          Review
+                        </button>
+                        <button
+                          onClick={() => handleBanUser(receipt)}
+                          disabled={banningUser === receipt.user_id}
+                          className="px-3 py-1.5 text-xs bg-red-700 hover:bg-red-600 text-white rounded-lg font-semibold disabled:opacity-50"
+                        >
+                          {banningUser === receipt.user_id ? '...' : 'Ban'}
+                        </button>
                       </div>
                     </div>
                   );

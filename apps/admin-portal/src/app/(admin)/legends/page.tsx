@@ -55,11 +55,54 @@ export default function LegendsPage() {
   const [legends, setLegends] = useState<LegendRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [adjustingLegend, setAdjustingLegend] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  async function handlePromoteToHall(legendId: string) {
+    if (!confirm('Promote this member to Hall of Legends? This is permanent and cannot be undone.')) return;
+    setActionLoading(legendId);
+    const res = await fetch(`/api/legends/${legendId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ promote_to_hall: true }),
+    });
+    if (res.ok) {
+      setLegends(prev => prev.map(l => l.id === legendId ? { ...l, tier: 'hall_of_legends', is_permanent: true } : l));
+    }
+    setActionLoading(null);
+  }
+
+  async function handleAdjustTier(legendId: string, newTier: string) {
+    setActionLoading(legendId);
+    const res = await fetch(`/api/legends/${legendId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: newTier }),
+    });
+    if (res.ok) {
+      setLegends(prev => prev.map(l => l.id === legendId ? { ...l, tier: newTier } : l));
+    }
+    setActionLoading(null);
+    setAdjustingLegend(null);
+  }
+
+  async function handleRemove(legendId: string) {
+    if (!confirm('Remove this member from Community Legends? This cannot be undone.')) return;
+    setActionLoading(legendId);
+    const res = await fetch(`/api/legends/${legendId}`, { method: 'DELETE' });
+    if (res.ok) {
+      setLegends(prev => prev.filter(l => l.id !== legendId));
+    } else {
+      const data = await res.json();
+      alert(data.error ?? 'Failed to remove legend');
+    }
+    setActionLoading(null);
+  }
 
   useEffect(() => {
     async function fetchLegends() {
@@ -202,14 +245,50 @@ export default function LegendsPage() {
 
                   {/* Admin actions — Hall of Legends entries cannot be removed */}
                   {!legend.is_permanent && (
-                    <div className="flex gap-2 mt-4">
-                      <button className="text-xs px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded-lg font-semibold">
-                        Promote to Hall of Legends
-                      </button>
-                      <button className="text-xs px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-gray-200 rounded-lg font-semibold">
-                        Adjust Tier
-                      </button>
-                      <button className="text-xs px-3 py-1.5 bg-red-900/60 hover:bg-red-800 text-red-300 rounded-lg font-semibold">
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {legend.tier !== 'hall_of_legends' && (
+                        <button
+                          onClick={() => handlePromoteToHall(legend.id)}
+                          disabled={actionLoading === legend.id}
+                          className="text-xs px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white rounded-lg font-semibold disabled:opacity-50"
+                        >
+                          Promote to Hall of Legends
+                        </button>
+                      )}
+                      {adjustingLegend === legend.id ? (
+                        <div className="flex gap-1 flex-wrap">
+                          {['bronze', 'silver', 'gold', 'platinum', 'legend'].map(t => (
+                            <button
+                              key={t}
+                              onClick={() => handleAdjustTier(legend.id, t)}
+                              disabled={actionLoading === legend.id}
+                              className={`text-xs px-2 py-1 rounded-lg font-semibold disabled:opacity-50 ${
+                                legend.tier === t ? 'bg-green-700 text-white' : 'bg-slate-600 hover:bg-slate-500 text-gray-200'
+                              }`}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => setAdjustingLegend(null)}
+                            className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 text-gray-400 rounded-lg"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setAdjustingLegend(legend.id)}
+                          className="text-xs px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-gray-200 rounded-lg font-semibold"
+                        >
+                          Adjust Tier
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemove(legend.id)}
+                        disabled={actionLoading === legend.id}
+                        className="text-xs px-3 py-1.5 bg-red-900/60 hover:bg-red-800 text-red-300 rounded-lg font-semibold disabled:opacity-50"
+                      >
                         Remove
                       </button>
                     </div>

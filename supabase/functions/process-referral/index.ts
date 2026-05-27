@@ -108,13 +108,21 @@ Deno.serve(async (req: Request) => {
     }
 
     // 7. Update referral link stats
-    await serviceClient
+    const { data: currentLink } = await serviceClient
       .from('referral_links')
-      .update({
-        conversions: serviceClient.rpc('increment', { x: 1 }),
-        earnings: serviceClient.rpc('increment_by', { x: pointsToAward }),
-      })
-      .eq('id', referralLink.id);
+      .select('conversions, earnings')
+      .eq('id', referralLink.id)
+      .single();
+
+    if (currentLink) {
+      await serviceClient
+        .from('referral_links')
+        .update({
+          conversions: (currentLink.conversions ?? 0) + 1,
+          earnings: (currentLink.earnings ?? 0) + pointsToAward,
+        })
+        .eq('id', referralLink.id);
+    }
 
     // 8. Update referred user's referred_by if this is a signup event
     if (['user_signup', 'business_signup'].includes(body.event_type)) {
