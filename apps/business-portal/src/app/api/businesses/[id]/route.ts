@@ -82,7 +82,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   return NextResponse.json({ business: data })
 }
 
-// DELETE /api/businesses/[id] — soft-delete (set status = 'inactive')
+// DELETE /api/businesses/[id] — soft-delete (set status = 'closed')
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const cookieStore = await cookies()

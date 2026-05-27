@@ -155,8 +155,7 @@ export function useReceiptUpload() {
           {
             body: {
               image_base64: base64,
-              mime_type: mimeType,
-              user_id: user.id,
+              image_mime_type: mimeType,
             },
           }
         );
