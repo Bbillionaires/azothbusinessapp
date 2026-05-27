@@ -70,28 +70,29 @@ export interface AdminUser {
 export interface Receipt {
   id: string;
   user_id: string;
-  business_id: string;
-  amount: number;
+  business_id?: string;
+  total: number;
+  subtotal?: number;
+  tax?: number;
   merchant_name: string;
   receipt_date: string;
-  submitted_at: string;
+  receipt_time?: string;
+  receipt_number?: string;
+  created_at: string;
   status: ReceiptStatus;
   fraud_score: number;
   fraud_flags: string[];
   image_url?: string;
+  items?: Array<{ name: string; price: number; qty?: number }>;
   ocr_data?: {
-    merchant: string;
-    date: string;
-    amount: number;
-    items?: Array<{ name: string; price: number }>;
-    tax?: number;
-    subtotal?: number;
+    raw_text?: string;
+    confidence?: number;
+    extracted_at?: string;
   };
   receipt_hash?: string;
-  points_issued?: number;
-  reviewer_id?: string;
-  reviewed_at?: string;
-  review_notes?: string;
+  points_awarded?: number;
+  profiles?: { full_name?: string; email?: string; tier?: string; points_balance?: number } | null;
+  businesses?: { name?: string; city?: string; state?: string } | null;
 }
 
 export interface Business {

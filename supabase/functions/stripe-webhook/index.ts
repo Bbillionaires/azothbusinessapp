@@ -127,13 +127,22 @@ async function handleCheckoutCompleted(session: any, supabase: any) {
         .single();
 
       if (profile?.referred_by) {
-        await supabase.functions.invoke('process-referral', {
-          body: {
-            referral_code: profile.referral_code,
-            event_type: 'greenwood_purchase',
-            referred_user_id: biz.owner_id,
-          },
-        });
+        // Look up the referrer's referral link code (not the referred user's own code)
+        const { data: referrerLink } = await supabase
+          .from('referral_links')
+          .select('code')
+          .eq('user_id', profile.referred_by)
+          .single();
+
+        if (referrerLink) {
+          await supabase.functions.invoke('process-referral', {
+            body: {
+              referral_code: referrerLink.code,
+              event_type: 'greenwood_purchase',
+              referred_user_id: biz.owner_id,
+            },
+          });
+        }
       }
     }
   }

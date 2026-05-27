@@ -121,8 +121,20 @@ export default function ReceiptDetailPage() {
           status: statusMap[type],
           review_notes: notes,
           reviewed_at: new Date().toISOString(),
+          ...(type === 'approve' ? { points_awarded: pointsValue } : {}),
         })
         .eq('id', receipt.id);
+
+      if (type === 'approve' && pointsValue > 0) {
+        await supabase.rpc('award_points', {
+          p_user_id: receipt.user_id,
+          p_amount: pointsValue,
+          p_type: 'earned',
+          p_reference_id: receipt.id,
+          p_reference_type: 'receipt',
+          p_description: `Receipt approved: ${receipt.merchant_name} $${(receipt.total ?? 0).toFixed(2)}`,
+        });
+      }
 
       setReceipt((r) => r ? { ...r, status: statusMap[type] as Receipt['status'] } : r);
     } finally {
@@ -139,7 +151,7 @@ export default function ReceiptDetailPage() {
   }> = {
     approve: {
       title: 'Approve Receipt?',
-      description: `${receipt?.ocr_data?.amount ? Math.floor(receipt.ocr_data.amount * 10) : 0} points will be issued to the user.`,
+      description: `${Math.floor(receipt?.total ?? 0)} points will be issued to the user.`,
       confirm: 'Approve & Issue Points',
       variant: 'default',
     },
@@ -179,7 +191,7 @@ export default function ReceiptDetailPage() {
 
   if (!receipt) return null;
 
-  const pointsValue = receipt.ocr_data?.amount ? Math.floor(receipt.ocr_data.amount * 10) : 0;
+  const pointsValue = Math.floor(receipt.total ?? 0);
 
   return (
     <div className="space-y-5">
@@ -217,54 +229,54 @@ export default function ReceiptDetailPage() {
               <FileText className="w-4 h-4 text-green-400" />
               OCR Extracted Data
             </h2>
-            {receipt.ocr_data ? (
+            {receipt ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2.5 text-sm">
                     <Store className="w-4 h-4 text-slate-500 shrink-0" />
                     <div>
                       <p className="text-xs text-slate-500">Merchant</p>
-                      <p className="text-slate-200 font-medium">{receipt.ocr_data.merchant}</p>
+                      <p className="text-slate-200 font-medium">{receipt.merchant_name}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 text-sm">
                     <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
                     <div>
                       <p className="text-xs text-slate-500">Date</p>
-                      <p className="text-slate-200 font-medium">{receipt.ocr_data.date}</p>
+                      <p className="text-slate-200 font-medium">{receipt.receipt_date}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 text-sm">
                     <DollarSign className="w-4 h-4 text-slate-500 shrink-0" />
                     <div>
                       <p className="text-xs text-slate-500">Subtotal</p>
-                      <p className="text-slate-200 font-medium">${receipt.ocr_data.subtotal?.toFixed(2) ?? '—'}</p>
+                      <p className="text-slate-200 font-medium">${(receipt.subtotal ?? 0).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 text-sm">
                     <DollarSign className="w-4 h-4 text-slate-500 shrink-0" />
                     <div>
                       <p className="text-xs text-slate-500">Total</p>
-                      <p className="text-slate-200 font-bold text-base">${receipt.ocr_data.amount.toFixed(2)}</p>
+                      <p className="text-slate-200 font-bold text-base">${(receipt.total ?? 0).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Line items */}
-                {receipt.ocr_data.items && receipt.ocr_data.items.length > 0 && (
+                {receipt.items && receipt.items.length > 0 && (
                   <div className="border-t border-slate-700/50 pt-3 mt-3">
                     <p className="text-xs font-medium text-slate-400 mb-2">Line Items</p>
                     <div className="space-y-1.5">
-                      {receipt.ocr_data.items.map((item, i) => (
+                      {(receipt.items as Array<{ name: string; price: number }>).map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
                           <span className="text-slate-300">{item.name}</span>
                           <span className="text-slate-400 tabular-nums">${item.price.toFixed(2)}</span>
                         </div>
                       ))}
-                      {receipt.ocr_data.tax && (
+                      {receipt.tax != null && (
                         <div className="flex items-center justify-between text-sm border-t border-slate-700/30 pt-1.5">
                           <span className="text-slate-400">Tax</span>
-                          <span className="text-slate-400 tabular-nums">${receipt.ocr_data.tax.toFixed(2)}</span>
+                          <span className="text-slate-400 tabular-nums">${receipt.tax.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
