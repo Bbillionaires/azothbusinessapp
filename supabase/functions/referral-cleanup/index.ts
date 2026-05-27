@@ -54,8 +54,8 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from('referral_links')
       .update({
-        successful_referrals: successfulReferrals,
-        total_earned: totalEarned,
+        conversions: successfulReferrals,
+        earnings: totalEarned,
         updated_at: now,
       })
       .eq('id', link.id)
@@ -72,12 +72,12 @@ serve(async (req) => {
   // 2. Expire old referral marketplace programs that have passed expiry date
   // -----------------------------------------------------------------------
   const { data: expiredPrograms, error: expireError } = await supabase
-    .from('referral_marketplace_programs')
+    .from('referral_marketplace')
     .update({ is_active: false, updated_at: now })
     .eq('is_active', true)
-    .not('expires_at', 'is', null)
-    .lt('expires_at', now)
-    .select('id, name')
+    .not('ends_at', 'is', null)
+    .lt('ends_at', now)
+    .select('id, title')
 
   if (expireError) {
     console.error('Failed to expire marketplace programs:', expireError.message)

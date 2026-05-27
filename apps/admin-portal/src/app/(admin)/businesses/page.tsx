@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Building2, MapPin, Star, Loader2 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { BusinessStatusBadge } from '../../../components/businesses/BusinessStatusBadge';
@@ -23,6 +24,7 @@ const STATUS_FILTERS = ['All', 'Active', 'Pending', 'Suspended'];
 const VERIFICATION_FILTERS = ['All', 'None', 'Basic', 'Pro', 'Elite', 'Community Trusted'];
 
 export default function BusinessesPage() {
+  const router = useRouter();
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -52,11 +54,18 @@ export default function BusinessesPage() {
   }, []);
 
   async function handleSuspend(id: string) {
-    // Optimistic update
     setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: 'suspended' } : b));
     await supabase
       .from('businesses')
       .update({ status: 'suspended' })
+      .eq('id', id);
+  }
+
+  async function handleApprove(id: string) {
+    setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: 'active' } : b));
+    await supabase
+      .from('businesses')
+      .update({ status: 'active' })
       .eq('id', id);
   }
 
@@ -197,9 +206,9 @@ export default function BusinessesPage() {
                       <VerificationActions
                         businessId={biz.id}
                         currentStatus={biz.status ?? 'pending'}
-                        onApprove={() => {}}
+                        onApprove={() => handleApprove(biz.id)}
                         onSuspend={() => handleSuspend(biz.id)}
-                        onView={() => {}}
+                        onView={() => router.push(`/businesses/${biz.id}`)}
                       />
                     </td>
                   </tr>
