@@ -26,7 +26,7 @@ export interface JobPosting {
   description: string | null;
   requirements: string[] | null;
   benefits: string[] | null;
-  job_type: 'full_time' | 'part_time' | 'contract' | 'volunteer' | 'internship';
+  type: 'full_time' | 'part_time' | 'contract' | 'volunteer' | 'internship';
   salary_min: number | null;
   salary_max: number | null;
   salary_type: 'hourly' | 'annual' | null;
@@ -96,7 +96,7 @@ export function useJobs(filters: JobFilters = {}) {
           query = query.eq('business_id', filters.business_id);
         }
         if (filters.job_type) {
-          query = query.eq('job_type', filters.job_type);
+          query = query.eq('type', filters.job_type);
         }
         if (filters.is_remote !== undefined) {
           query = query.eq('is_remote', filters.is_remote);

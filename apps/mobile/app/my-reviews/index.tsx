@@ -17,7 +17,7 @@ import { Colors, Spacing, Radius, FontSize } from '../../lib/theme';
 interface MyReview {
   id: string;
   rating: number;
-  content: string;
+  body: string;
   status: string;
   created_at: string;
   helpful_count: number;
@@ -54,7 +54,7 @@ export default function MyReviewsScreen() {
     async function load() {
       const { data } = await supabase
         .from('reviews')
-        .select('id, rating, content, status, created_at, helpful_count, business:businesses(id, name, city, state)')
+        .select('id, rating, body, status, created_at, helpful_count, business:businesses(id, name, city, state)')
         .eq('reviewer_id', user!.id)
         .order('created_at', { ascending: false });
       setReviews((data ?? []) as MyReview[]);
@@ -110,8 +110,8 @@ export default function MyReviewsScreen() {
                   </View>
                 </View>
                 <StarRating rating={item.rating} />
-                {item.content ? (
-                  <Text style={styles.reviewContent} numberOfLines={3}>{item.content}</Text>
+                {item.body ? (
+                  <Text style={styles.reviewContent} numberOfLines={3}>{item.body}</Text>
                 ) : null}
                 <View style={styles.cardFooter}>
                   <Text style={styles.dateText}>

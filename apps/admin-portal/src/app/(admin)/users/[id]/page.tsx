@@ -76,7 +76,7 @@ export default function UserDetailPage() {
 
       const [receiptRes, reviewRes, referralRes, eventRes, fraudRes] = await Promise.all([
         supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('user_id', id as string),
-        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', id as string),
+        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('reviewer_id', id as string),
         supabase.from('referral_events').select('id', { count: 'exact', head: true }).eq('referrer_id', id as string),
         supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', id as string),
         supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('user_id', id as string).gte('fraud_score', 90),

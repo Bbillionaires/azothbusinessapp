@@ -21,7 +21,7 @@ interface MyEvent {
   event: {
     id: string;
     title: string;
-    event_type: string;
+    type: string;
     start_at: string;
     end_at: string | null;
     city: string;
@@ -61,7 +61,7 @@ export default function MyEventsScreen() {
         .select(`
           id, status, created_at,
           event:events(
-            id, title, event_type, start_at, end_at, city, current_attendees, max_attendees,
+            id, title, type, start_at, end_at, city, current_attendees, max_attendees,
             business:businesses(id, name)
           )
         `)
@@ -134,7 +134,7 @@ export default function MyEventsScreen() {
           renderItem={({ item }) => {
             const eventDate = new Date(item.event.start_at);
             const isPast = eventDate < now;
-            const emoji = TYPE_EMOJI[item.event.event_type] ?? '📅';
+            const emoji = TYPE_EMOJI[item.event.type] ?? '📅';
             return (
               <TouchableOpacity
                 style={styles.card}

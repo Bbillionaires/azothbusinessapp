@@ -12,7 +12,7 @@ type Event = {
   id: string; title: string; description: string | null; type: string;
   start_at: string; end_at: string | null; address: string | null;
   city: string | null; is_free: boolean; points_reward: number;
-  attendee_count: number; max_attendees: number | null;
+  current_attendees: number; max_attendees: number | null;
   businesses: { name: string; city: string } | null;
 };
 
@@ -157,7 +157,7 @@ export default function EventsScreen() {
           ) : events.map(event => {
             const config = EVENT_TYPE_CONFIG[event.type] ?? EVENT_TYPE_CONFIG.other;
             const isRsvpd = rsvpdIds.has(event.id);
-            const isFull = event.max_attendees !== null && event.attendee_count >= event.max_attendees;
+            const isFull = event.max_attendees !== null && event.current_attendees >= event.max_attendees;
 
             return (
               <Pressable key={event.id} onPress={() => router.push(`/events/${event.id}`)} style={styles.card}>
@@ -195,8 +195,8 @@ export default function EventsScreen() {
                     <View style={styles.attendeeRow}>
                       <Ionicons name="people-outline" size={14} color="#888" />
                       <Text style={styles.attendeeText}>
-                        {event.attendee_count} going
-                        {event.max_attendees ? ` · ${event.max_attendees - event.attendee_count} spots left` : ''}
+                        {event.current_attendees} going
+                        {event.max_attendees ? ` · ${event.max_attendees - event.current_attendees} spots left` : ''}
                       </Text>
                     </View>
                     <Pressable

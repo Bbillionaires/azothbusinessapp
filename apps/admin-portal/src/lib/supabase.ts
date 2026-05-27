@@ -134,15 +134,19 @@ export interface PlatformUser {
 export interface Dispute {
   id: string;
   user_id: string;
-  receipt_id?: string;
-  business_id?: string;
-  dispute_type: 'points_missing' | 'wrong_amount' | 'fraud_claim' | 'other';
-  status: 'open' | 'in_review' | 'resolved' | 'dismissed';
+  type: 'receipt' | 'review' | 'fraud' | 'points' | 'account' | 'other';
+  subject: string;
   description: string;
-  resolution?: string;
+  status: 'open' | 'investigating' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  receipt_id?: string;
+  review_id?: string;
+  business_id?: string;
+  assigned_to?: string;
+  resolution_note?: string;
+  resolved_at?: string;
   created_at: string;
   updated_at: string;
-  assigned_to?: string;
 }
 
 export interface FraudAlert {

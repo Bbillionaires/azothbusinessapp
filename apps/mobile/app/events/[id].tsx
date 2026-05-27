@@ -37,7 +37,7 @@ interface EventData {
   is_free: boolean;
   ticket_price: number | null;
   max_attendees: number | null;
-  attendee_count: number;
+  current_attendees: number;
   points_reward: number;
   businesses: { id: string; name: string } | null;
 }
@@ -109,7 +109,7 @@ export default function EventDetailScreen() {
     );
   }
 
-  const attendancePct = event.max_attendees ? Math.min(100, (event.attendee_count / event.max_attendees) * 100) : 0;
+  const attendancePct = event.max_attendees ? Math.min(100, (event.current_attendees / event.max_attendees) * 100) : 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -196,7 +196,7 @@ export default function EventDetailScreen() {
                 <Ionicons name="people-outline" size={20} color={THEME.colors.primary} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.detailLabel}>Attendance</Text>
-                  <Text style={styles.detailValue}>{event.attendee_count} / {event.max_attendees} going</Text>
+                  <Text style={styles.detailValue}>{event.current_attendees} / {event.max_attendees} going</Text>
                   <View style={styles.attendanceBar}>
                     <View style={[styles.attendanceFill, { width: `${attendancePct}%` as any }]} />
                   </View>

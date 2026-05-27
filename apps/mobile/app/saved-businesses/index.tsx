@@ -23,7 +23,7 @@ interface SavedBusiness {
     city: string;
     state: string;
     average_rating: number;
-    review_count: number;
+    total_reviews: number;
   };
   created_at: string;
 }
@@ -38,7 +38,7 @@ export default function SavedBusinessesScreen() {
     async function load() {
       const { data } = await supabase
         .from('business_followers')
-        .select('id, created_at, business:businesses(id, name, category, city, state, average_rating, review_count)')
+        .select('id, created_at, business:businesses(id, name, category, city, state, average_rating, total_reviews)')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
       setSaved((data ?? []) as SavedBusiness[]);
@@ -92,7 +92,7 @@ export default function SavedBusinessesScreen() {
                 </Text>
                 {item.business.average_rating > 0 && (
                   <Text style={styles.rating}>
-                    ⭐ {item.business.average_rating.toFixed(1)} ({item.business.review_count} reviews)
+                    ⭐ {item.business.average_rating.toFixed(1)} ({item.business.total_reviews} reviews)
                   </Text>
                 )}
               </View>

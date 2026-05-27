@@ -24,7 +24,7 @@ export interface EventRow {
   business_id: string | null;
   title: string;
   description: string | null;
-  event_type: string;
+  type: string;
   image_url: string | null;
   start_at: string;
   end_at: string | null;
@@ -90,7 +90,7 @@ export function useEvents(filters: EventFilters = {}) {
           query = query.eq('business_id', filters.business_id);
         }
         if (filters.event_type) {
-          query = query.eq('event_type', filters.event_type);
+          query = query.eq('type', filters.event_type);
         }
         if (filters.from_date) {
           query = query.gte('start_at', filters.from_date);

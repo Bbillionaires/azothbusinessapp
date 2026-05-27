@@ -31,7 +31,7 @@ export default function ProfileScreen() {
 
       const [receiptsRes, reviewsRes, referralsRes] = await Promise.all([
         supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('reviewer_id', user.id),
         supabase.from('referral_events').select('id', { count: 'exact', head: true }).eq('referrer_id', user.id),
       ]);
 
