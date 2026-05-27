@@ -51,8 +51,8 @@ export default function ReceiptsPage() {
       setFetchLoading(true);
       let query = supabase
         .from('receipts')
-        .select('id, user_id, business_id, amount, merchant_name, receipt_date, submitted_at, status, fraud_score, fraud_flags, image_url, profiles!user_id(full_name, email)')
-        .order('submitted_at', { ascending: false })
+        .select('id, user_id, business_id, total, merchant_name, receipt_date, created_at, status, fraud_score, fraud_flags, image_url, profiles!user_id(full_name, email)')
+        .order('created_at', { ascending: false })
         .limit(200);
 
       if (statusFilter !== 'all') {
@@ -114,20 +114,20 @@ export default function ReceiptsPage() {
       render: (r) => <span className="font-medium text-slate-200">{r.merchant_name}</span>,
     },
     {
-      key: 'amount',
+      key: 'total',
       header: 'Amount',
       sortable: true,
       render: (r) => (
-        <span className="tabular-nums font-medium text-slate-200">${r.amount.toFixed(2)}</span>
+        <span className="tabular-nums font-medium text-slate-200">${(r.total ?? 0).toFixed(2)}</span>
       ),
     },
     {
-      key: 'submitted_at',
+      key: 'created_at',
       header: 'Submitted',
       sortable: true,
       render: (r) => (
         <span className="text-slate-400 text-xs">
-          {format(new Date(r.submitted_at), 'MMM d, yyyy h:mm a')}
+          {format(new Date(r.created_at), 'MMM d, yyyy h:mm a')}
         </span>
       ),
     },

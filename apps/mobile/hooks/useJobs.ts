@@ -51,12 +51,12 @@ export interface JobPosting {
 export interface JobApplication {
   id: string;
   job_id: string;
-  user_id: string;
-  cover_note: string | null;
+  applicant_id: string;
+  cover_letter: string | null;
   resume_url: string | null;
-  status: 'pending' | 'reviewed' | 'interview' | 'hired' | 'rejected';
-  applied_at: string;
+  status: 'applied' | 'reviewed' | 'interview' | 'hired' | 'rejected';
   created_at: string;
+  updated_at: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +199,7 @@ export function useApply(jobId: string) {
       .from('job_applications')
       .select('*')
       .eq('job_id', jobId)
-      .eq('user_id', user.id)
+      .eq('applicant_id', user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -230,11 +230,11 @@ export function useApply(jobId: string) {
         const { data: row, error: err } = await supabase
           .from('job_applications')
           .insert({
-            job_id:     jobId,
-            user_id:    user.id,
-            cover_note: coverNote ?? null,
-            resume_url: resumeUrl ?? null,
-            status:     'pending',
+            job_id:       jobId,
+            applicant_id: user.id,
+            cover_letter: coverNote ?? null,
+            resume_url:   resumeUrl ?? null,
+            status:       'applied',
           })
           .select()
           .single();

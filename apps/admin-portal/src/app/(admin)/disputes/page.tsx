@@ -19,7 +19,7 @@ interface Dispute {
   resolution_note?: string;
   resolved_at?: string;
   profiles?: { full_name?: string; email?: string } | null;
-  receipts?: { merchant_name?: string; amount?: number } | null;
+  receipts?: { merchant_name?: string; total?: number } | null;
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -66,7 +66,7 @@ export default function DisputesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('disputes')
-      .select('*, profiles!user_id(full_name, email), receipts(merchant_name, amount)')
+      .select('*, profiles!user_id(full_name, email), receipts(merchant_name, total)')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -211,7 +211,7 @@ export default function DisputesPage() {
               {selected.receipts && (
                 <div className="bg-slate-700/30 rounded-lg px-4 py-2 mb-4 text-xs text-gray-400">
                   Receipt: {selected.receipts.merchant_name}
-                  {selected.receipts.amount !== undefined ? ` · $${selected.receipts.amount.toFixed(2)}` : ''}
+                  {selected.receipts.total !== undefined ? ` · $${selected.receipts.total.toFixed(2)}` : ''}
                 </div>
               )}
 

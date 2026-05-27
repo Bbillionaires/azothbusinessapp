@@ -63,7 +63,7 @@ export default function ScanScreen() {
 
   const handleSubmit = async () => {
     if (!selectedImage) return;
-    const result = await upload(selectedImage, 'image/jpeg');
+    const result = await upload(selectedImage);
     if (result.error) {
       Alert.alert('Upload Failed', result.error);
     } else {

@@ -34,7 +34,7 @@ export default function ReceiptReviewCard({ receipt }: ReceiptReviewCardProps) {
             <div className="flex items-center gap-1.5 text-slate-400">
               <DollarSign className="w-3.5 h-3.5 shrink-0" />
               <span className="text-slate-200 font-medium">
-                ${receipt.amount.toFixed(2)}
+                ${receipt.total.toFixed(2)}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
@@ -43,7 +43,7 @@ export default function ReceiptReviewCard({ receipt }: ReceiptReviewCardProps) {
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
               <Calendar className="w-3.5 h-3.5 shrink-0" />
-              <span>{format(new Date(receipt.submitted_at), 'MMM d, yyyy')}</span>
+              <span>{format(new Date(receipt.created_at), 'MMM d, yyyy')}</span>
             </div>
           </div>
 

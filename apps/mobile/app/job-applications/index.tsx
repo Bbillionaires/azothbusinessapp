@@ -19,23 +19,25 @@ interface JobApplication {
   id: string;
   status: string;
   cover_letter: string | null;
-  applied_at: string;
+  created_at: string;
   job_posting: {
     id: string;
     title: string;
-    employment_type: string;
-    salary_range: string | null;
-    business: {
+    type: string;
+    salary_min: number | null;
+    salary_max: number | null;
+    salary_type: string | null;
+    businesses: {
       id: string;
       name: string;
-      city: string;
-      state: string;
-    };
+      city: string | null;
+      state: string | null;
+    } | null;
   };
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending:   { label: 'Applied',    color: '#3B82F6', icon: 'time-outline' },
+  applied:   { label: 'Applied',    color: '#3B82F6', icon: 'time-outline' },
   reviewed:  { label: 'Reviewed',   color: '#8B5CF6', icon: 'eye-outline' },
   interview: { label: 'Interview',  color: '#F59E0B', icon: 'calendar-outline' },
   offered:   { label: 'Offered',    color: Colors.success, icon: 'checkmark-circle-outline' },
@@ -54,14 +56,14 @@ export default function JobApplicationsScreen() {
       const { data } = await supabase
         .from('job_applications')
         .select(`
-          id, status, cover_letter, applied_at,
+          id, status, cover_letter, created_at,
           job_posting:job_postings(
-            id, title, employment_type, salary_range,
-            business:businesses(id, name, city, state)
+            id, title, type, salary_min, salary_max, salary_type,
+            businesses(id, name, city, state)
           )
         `)
-        .eq('user_id', user!.id)
-        .order('applied_at', { ascending: false });
+        .eq('applicant_id', user!.id)
+        .order('created_at', { ascending: false });
       setApplications((data ?? []) as JobApplication[]);
       setLoading(false);
     }
@@ -94,7 +96,17 @@ export default function JobApplicationsScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => {
-            const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.pending;
+            const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.applied;
+            const biz = item.job_posting.businesses;
+            const salaryLabel = (() => {
+              const { salary_min, salary_max, salary_type } = item.job_posting;
+              if (!salary_min && !salary_max) return null;
+              const suffix = salary_type === 'hourly' ? '/hr' : '/yr';
+              const fmt = (n: number) => n >= 1000 ? `$${(n/1000).toFixed(0)}k` : `$${n}`;
+              if (salary_min && salary_max) return `${fmt(salary_min)}–${fmt(salary_max)}${suffix}`;
+              if (salary_min) return `${fmt(salary_min)}+${suffix}`;
+              return `Up to ${fmt(salary_max!)}${suffix}`;
+            })();
             return (
               <TouchableOpacity
                 style={styles.card}
@@ -103,10 +115,12 @@ export default function JobApplicationsScreen() {
                 <View style={styles.cardTop}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.jobTitle}>{item.job_posting.title}</Text>
-                    <Text style={styles.businessName}>{item.job_posting.business.name}</Text>
-                    <Text style={styles.locationText}>
-                      {item.job_posting.business.city}, {item.job_posting.business.state}
-                    </Text>
+                    <Text style={styles.businessName}>{biz?.name ?? '—'}</Text>
+                    {biz?.city ? (
+                      <Text style={styles.locationText}>
+                        {biz.city}{biz.state ? `, ${biz.state}` : ''}
+                      </Text>
+                    ) : null}
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: config.color + '15' }]}>
                     <Ionicons name={config.icon as any} size={14} color={config.color} />
@@ -115,11 +129,11 @@ export default function JobApplicationsScreen() {
                 </View>
                 <View style={styles.cardFooter}>
                   <Text style={styles.metaText}>
-                    {item.job_posting.employment_type?.replace('_', ' ')}
-                    {item.job_posting.salary_range ? ` · ${item.job_posting.salary_range}` : ''}
+                    {item.job_posting.type?.replace('_', ' ')}
+                    {salaryLabel ? ` · ${salaryLabel}` : ''}
                   </Text>
                   <Text style={styles.dateText}>
-                    Applied {new Date(item.applied_at).toLocaleDateString()}
+                    Applied {new Date(item.created_at).toLocaleDateString()}
                   </Text>
                 </View>
               </TouchableOpacity>

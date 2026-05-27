@@ -16,10 +16,12 @@ export interface ReceiptRow {
   user_id: string;
   business_id: string | null;
   image_url: string | null;
-  total_amount: number | null;
-  tax_amount: number | null;
-  transaction_date: string | null;
-  transaction_number: string | null;
+  total: number | null;
+  subtotal: number | null;
+  tax: number | null;
+  merchant_name: string | null;
+  receipt_date: string | null;
+  receipt_number: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'flagged';
   fraud_score: number | null;
   points_awarded: number | null;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator, Linking,
+  Alert, ActivityIndicator, Linking, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { THEME } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
+import { useApply } from '../../hooks/useJobs';
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   full_time: 'Full-Time', part_time: 'Part-Time',
@@ -33,6 +34,10 @@ export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [job, setJob] = useState<JobData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [coverNote, setCoverNote] = useState('');
+
+  const { apply, applied, loading: applying } = useApply(id as string);
 
   useEffect(() => {
     async function load() {
@@ -69,12 +74,24 @@ export default function JobDetailScreen() {
   }
 
   const handleApply = () => {
+    if (applied) return;
     if (job.external_apply_url) {
       Linking.openURL(job.external_apply_url);
     } else {
+      setShowApplyModal(true);
+    }
+  };
+
+  const handleSubmitApplication = async () => {
+    const { error } = await apply(coverNote.trim() || undefined);
+    setShowApplyModal(false);
+    setCoverNote('');
+    if (error) {
+      Alert.alert('Application Failed', error);
+    } else {
       Alert.alert(
-        'Apply for this Job',
-        `Contact ${job.businesses?.name ?? 'the employer'} directly to apply for this position.`,
+        'Application Submitted!',
+        `Your application for ${job.title} at ${job.businesses?.name ?? 'this company'} has been submitted.`,
         [{ text: 'OK' }]
       );
     }
@@ -185,14 +202,67 @@ export default function JobDetailScreen() {
           )}
 
           {/* Apply button */}
-          <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
-            <Ionicons name="briefcase-outline" size={20} color="#fff" />
-            <Text style={styles.applyBtnText}>
-              {job.external_apply_url ? 'Apply Now' : 'Contact Employer'}
-            </Text>
+          <TouchableOpacity
+            style={[styles.applyBtn, (applied || applying) && styles.applyBtnDisabled]}
+            onPress={handleApply}
+            disabled={applied || applying}
+          >
+            {applying ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons
+                  name={applied ? 'checkmark-circle' : 'briefcase-outline'}
+                  size={20}
+                  color="#fff"
+                />
+                <Text style={styles.applyBtnText}>
+                  {applied ? 'Applied' : job.external_apply_url ? 'Apply Now' : 'Apply In-App'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* In-app apply modal */}
+      <Modal
+        visible={showApplyModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowApplyModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Apply for {job.title}</Text>
+              <TouchableOpacity onPress={() => setShowApplyModal(false)}>
+                <Ionicons name="close" size={24} color={THEME.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Applying to {job.businesses?.name ?? 'this company'}
+            </Text>
+            <Text style={styles.inputLabel}>Cover Note (optional)</Text>
+            <TextInput
+              style={styles.coverInput}
+              placeholder="Tell the employer why you're a great fit..."
+              placeholderTextColor={THEME.colors.textSecondary}
+              multiline
+              numberOfLines={5}
+              value={coverNote}
+              onChangeText={setCoverNote}
+              textAlignVertical="top"
+            />
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitApplication}>
+              <Text style={styles.submitBtnText}>Submit Application</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -230,5 +300,19 @@ const styles = StyleSheet.create({
   checkRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   checkText: { flex: 1, fontSize: 14, color: THEME.colors.text, lineHeight: 20 },
   applyBtn: { backgroundColor: THEME.colors.primary, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 32 },
+  applyBtnDisabled: { opacity: 0.6 },
   applyBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 12 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: THEME.colors.text, flex: 1 },
+  modalSubtitle: { fontSize: 14, color: THEME.colors.textSecondary },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: THEME.colors.text },
+  coverInput: {
+    borderWidth: 1, borderColor: THEME.colors.border, borderRadius: 10,
+    padding: 12, fontSize: 15, color: THEME.colors.text, minHeight: 100,
+    backgroundColor: THEME.colors.background,
+  },
+  submitBtn: { backgroundColor: THEME.colors.primary, borderRadius: 12, padding: 16, alignItems: 'center' },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

@@ -77,7 +77,7 @@ async function getRecentActivity() {
       supabase
         .from('receipts')
         .select('*')
-        .order('submitted_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(5),
       supabase
         .from('receipts')
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
                   <div>
                     <p className="text-sm text-slate-200">{r.merchant_name}</p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      ${r.amount.toFixed(2)} · {format(new Date(r.submitted_at), 'MMM d, h:mm a')}
+                      ${(r.total ?? 0).toFixed(2)} · {format(new Date(r.created_at), 'MMM d, h:mm a')}
                     </p>
                   </div>
                   <span className="text-sm font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg">

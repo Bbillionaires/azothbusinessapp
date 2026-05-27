@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const [receiptsRes, reviewsRes, followersRes, offersRes, weeklyRes] = await Promise.all([
     // Total approved receipts for this business
     service.from('receipts')
-      .select('total_amount, user_id, created_at')
+      .select('total, user_id, created_at')
       .eq('business_id', businessId)
       .eq('status', 'approved'),
 
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     // Weekly receipts breakdown (last 8 weeks)
     service.from('receipts')
-      .select('total_amount, created_at')
+      .select('total, created_at')
       .eq('business_id', businessId)
       .eq('status', 'approved')
       .gte('created_at', new Date(now.getTime() - 56 * 24 * 3600 * 1000).toISOString()),
@@ -77,18 +77,18 @@ export async function GET(req: NextRequest) {
   const weeklyReceipts = weeklyRes.data ?? [];
 
   // Compute totals
-  const totalRevenue = receipts.reduce((sum, r) => sum + (r.total_amount ?? 0), 0);
+  const totalRevenue = receipts.reduce((sum, r) => sum + (r.total ?? 0), 0);
   const thisMonthRevenue = receipts.filter(r => r.created_at >= thisMonthStart)
-    .reduce((sum, r) => sum + (r.total_amount ?? 0), 0);
+    .reduce((sum, r) => sum + (r.total ?? 0), 0);
   const lastMonthRevenue = receipts.filter(r => r.created_at >= lastMonthStart && r.created_at < thisMonthStart)
-    .reduce((sum, r) => sum + (r.total_amount ?? 0), 0);
+    .reduce((sum, r) => sum + (r.total ?? 0), 0);
 
   const avgReceipt = receipts.length > 0 ? totalRevenue / receipts.length : 0;
 
   // Top customers by spending
   const customerMap = new Map<string, number>();
   for (const r of receipts) {
-    customerMap.set(r.user_id, (customerMap.get(r.user_id) ?? 0) + (r.total_amount ?? 0));
+    customerMap.set(r.user_id, (customerMap.get(r.user_id) ?? 0) + (r.total ?? 0));
   }
   const topCustomers = [...customerMap.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
   for (const r of weeklyReceipts) {
     const d = new Date(r.created_at);
     const weekKey = new Date(d.setDate(d.getDate() - d.getDay())).toISOString().split('T')[0];
-    weekMap.set(weekKey, (weekMap.get(weekKey) ?? 0) + (r.total_amount ?? 0));
+    weekMap.set(weekKey, (weekMap.get(weekKey) ?? 0) + (r.total ?? 0));
   }
   const weeklyData = [...weekMap.entries()]
     .sort(([a], [b]) => a.localeCompare(b))

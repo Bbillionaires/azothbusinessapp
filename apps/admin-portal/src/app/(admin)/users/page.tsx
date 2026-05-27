@@ -11,8 +11,8 @@ interface UserRow {
   role: string | null;
   tier: string | null;
   points_balance: number | null;
-  is_legend: boolean | null;
-  status: string | null;
+  is_banned: boolean | null;
+  ban_reason: string | null;
   created_at: string | null;
 }
 
@@ -46,7 +46,7 @@ export default function UsersPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, tier, points_balance, is_legend, status, created_at')
+        .select('id, full_name, email, role, tier, points_balance, is_banned, ban_reason, created_at')
         .not('role', 'in', '("admin_staff","admin_manager","super_admin")')
         .order('created_at', { ascending: false })
         .limit(200);
@@ -60,12 +60,8 @@ export default function UsersPage() {
   }, []);
 
   async function handleSuspend(userId: string) {
-    // Optimistic update
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'suspended' } : u));
-    await supabase
-      .from('profiles')
-      .update({ status: 'suspended' })
-      .eq('id', userId);
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: true } : u));
+    await fetch(`/api/users/${userId}/suspend`, { method: 'POST' });
   }
 
   const thirtyDaysAgo = new Date();
@@ -77,15 +73,16 @@ export default function UsersPage() {
     const matchSearch = name.toLowerCase().includes(search.toLowerCase()) ||
       email.toLowerCase().includes(search.toLowerCase());
     const matchTier = tierFilter === 'All' || (u.tier ?? '') === tierFilter.toLowerCase();
-    const matchStatus = statusFilter === 'All' || (u.status ?? '') === statusFilter.toLowerCase();
+    const userStatus = u.is_banned ? 'suspended' : 'active';
+    const matchStatus = statusFilter === 'All' || userStatus === statusFilter.toLowerCase();
     return matchSearch && matchTier && matchStatus;
   });
 
   const stats = [
     { label: 'Total Users', value: users.length },
-    { label: 'Legends', value: users.filter(u => u.is_legend).length },
+    { label: 'Banned', value: users.filter(u => u.is_banned).length },
     { label: 'Gold+', value: users.filter(u => ['gold', 'platinum', 'legend'].includes(u.tier ?? '')).length },
-    { label: 'Flagged', value: users.filter(u => u.status === 'flagged').length },
+    { label: 'Bronze', value: users.filter(u => (u.tier ?? 'bronze') === 'bronze').length },
     { label: 'New (30d)', value: users.filter(u => u.created_at && new Date(u.created_at) >= thirtyDaysAgo).length },
   ];
 
@@ -167,7 +164,6 @@ export default function UsersPage() {
                         <div>
                           <div className="font-medium text-gray-200 flex items-center gap-1">
                             {user.full_name ?? 'Unknown'}
-                            {user.is_legend && <span className="text-xs">👑</span>}
                           </div>
                           <div className="text-xs text-gray-500">{user.email ?? '—'}</div>
                         </div>
@@ -187,11 +183,9 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                        user.status === 'active' ? 'bg-green-900/40 text-green-400' :
-                        user.status === 'flagged' ? 'bg-yellow-900/40 text-yellow-400' :
-                        'bg-red-900/40 text-red-400'
+                        user.is_banned ? 'bg-red-900/40 text-red-400' : 'bg-green-900/40 text-green-400'
                       }`}>
-                        {user.status ?? 'unknown'}
+                        {user.is_banned ? 'banned' : 'active'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
@@ -209,7 +203,7 @@ export default function UsersPage() {
                           className="text-gray-400 hover:text-red-400 p-1"
                           title="Suspend"
                           onClick={() => handleSuspend(user.id)}
-                          disabled={user.status === 'suspended'}
+                          disabled={!!user.is_banned}
                         >
                           <ShieldOff size={14} />
                         </button>

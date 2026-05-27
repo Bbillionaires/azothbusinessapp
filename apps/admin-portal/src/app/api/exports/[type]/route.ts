@@ -53,9 +53,9 @@ async function exportReceipts(serviceClient: ReturnType<typeof createSupabaseSer
   const { data, error } = await serviceClient
     .from('receipts')
     .select(
-      'id, user_id, business_id, merchant_name, amount, receipt_date, status, fraud_score, points_awarded, submitted_at'
+      'id, user_id, business_id, merchant_name, total, receipt_date, status, fraud_score, points_awarded, created_at'
     )
-    .order('submitted_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw new Error(`Failed to query receipts: ${error.message}`)
   return (data ?? []) as Record<string, unknown>[]
@@ -77,9 +77,9 @@ async function exportAnalytics(serviceClient: ReturnType<typeof createSupabaseSe
   const { data, error } = await serviceClient
     .from('leaderboard_entries')
     .select(
-      'user_id, city, period, rank, impact_score, total_spending, receipt_count, referral_count, computed_at'
+      'user_id, city, state, period, category, rank, score, created_at'
     )
-    .order('computed_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw new Error(`Failed to query analytics: ${error.message}`)
   return (data ?? []) as Record<string, unknown>[]

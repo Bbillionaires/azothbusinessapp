@@ -42,7 +42,7 @@ const EXPORTS: ExportConfig[] = [
     icon: Receipt,
     color: 'text-yellow-400',
     filename: 'local-first-rewards-receipts.csv',
-    fields: ['id', 'user_id', 'business_id', 'merchant_name', 'amount', 'receipt_date', 'status', 'fraud_score', 'points_awarded', 'submitted_at'],
+    fields: ['id', 'user_id', 'business_id', 'merchant_name', 'total', 'receipt_date', 'status', 'fraud_score', 'points_awarded', 'created_at'],
   },
   {
     type: 'analytics',
@@ -51,7 +51,7 @@ const EXPORTS: ExportConfig[] = [
     icon: BarChart2,
     color: 'text-purple-400',
     filename: 'local-first-rewards-analytics.csv',
-    fields: ['user_id', 'city', 'period', 'rank', 'impact_score', 'total_spending', 'receipt_count', 'referral_count', 'computed_at'],
+    fields: ['user_id', 'city', 'state', 'period', 'category', 'rank', 'score', 'created_at'],
   },
   {
     type: 'transactions',

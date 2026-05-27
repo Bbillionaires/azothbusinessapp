@@ -74,8 +74,8 @@ export function ReceiptStatus({ receipt, onPress }: ReceiptStatusProps) {
         <Text style={styles.date}>
           {format(new Date(receipt.created_at), 'MMM d, yyyy')}
         </Text>
-        {receipt.total_amount !== null && receipt.total_amount !== undefined && (
-          <Text style={styles.amount}>${(receipt.total_amount / 100).toFixed(2)}</Text>
+        {(receipt as any).total != null && (
+          <Text style={styles.amount}>${Number((receipt as any).total).toFixed(2)}</Text>
         )}
       </View>
 

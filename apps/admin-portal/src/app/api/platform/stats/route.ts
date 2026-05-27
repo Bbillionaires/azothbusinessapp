@@ -42,7 +42,7 @@ export async function GET() {
       svc.from('receipts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       svc.from('receipts').select('id', { count: 'exact', head: true }).gte('fraud_score', 90).in('status', ['pending', 'flagged']),
       svc.from('points_transactions').select('amount').gte('created_at', todayStart).gt('amount', 0),
-      svc.from('receipts').select('amount').eq('status', 'approved').gte('submitted_at', monthStart),
+      svc.from('receipts').select('total').eq('status', 'approved').gte('created_at', monthStart),
       svc.from('ad_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       svc.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ]);
@@ -52,7 +52,7 @@ export async function GET() {
     );
 
     const revenueThisMonth = (revenueMonthRes.data ?? []).reduce(
-      (s: number, r: { amount: number }) => s + (r.amount ?? 0), 0
+      (s: number, r: { total: number }) => s + (r.total ?? 0), 0
     );
 
     return NextResponse.json({
