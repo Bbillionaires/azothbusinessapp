@@ -21,7 +21,6 @@ type Review = {
   rating: number;
   title: string | null;
   body: string;
-  tags: string[] | null;
   status: string;
   weight: number;
   helpful_count: number;
@@ -268,14 +267,6 @@ export default function ReviewsPage() {
                     <h4 className="font-semibold text-gray-900 mt-3">{review.title}</h4>
                   )}
                   <p className="text-gray-600 text-sm mt-2 leading-relaxed">{review.body}</p>
-
-                  {review.tags && review.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {review.tags.map(tag => (
-                        <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{tag}</span>
-                      ))}
-                    </div>
-                  )}
 
                   <div className="flex items-center gap-4 mt-3">
                     <span className="text-xs text-gray-400 flex items-center gap-1">
