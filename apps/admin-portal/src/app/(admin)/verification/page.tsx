@@ -11,8 +11,8 @@ interface VerificationRequest {
   id: string;
   business_id: string;
   level: 'basic' | 'pro' | 'elite' | 'community_trusted';
-  status: 'pending' | 'approved' | 'rejected';
-  documents: string[] | null;
+  status: 'pending' | 'approved' | 'rejected' | 'requires_more_info';
+  documents: Array<{ type?: string; url?: string; name?: string }> | null;
   notes: string | null;
   review_notes: string | null;
   created_at: string;
@@ -330,7 +330,7 @@ export default function VerificationQueuePage() {
                       ? <CheckCircle size={14} className="text-green-400 flex-shrink-0" />
                       : <XCircle size={14} className="text-gray-600 flex-shrink-0" />}
                     <span className={`text-sm ${submitted ? 'text-gray-300' : 'text-gray-600'}`}>{doc}</span>
-                    {submitted && <span className="text-xs text-gray-500 ml-auto">{submitted}</span>}
+                    {submitted && <span className="text-xs text-gray-500 ml-auto">{submitted.name ?? submitted.url ?? '✓'}</span>}
                   </div>
                 );
               })}

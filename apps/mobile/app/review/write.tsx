@@ -52,7 +52,6 @@ export default function WriteReviewScreen() {
       rating,
       title: title || null,
       body,
-      tags: tags.length > 0 ? tags : null,
       status: 'pending',
     });
 
