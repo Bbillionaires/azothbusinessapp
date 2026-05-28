@@ -212,14 +212,16 @@ async function updateOfferAnalytics(supabase: any, now: Date) {
 
   const { data: redemptions } = await supabase
     .from('offer_redemptions')
-    .select('business_id')
-    .gte('redeemed_at', monthStart)
-    .eq('status', 'completed');
+    .select('business_offers!offer_id(business_id)')
+    .gte('redeemed_at', monthStart);
 
   if (redemptions && redemptions.length > 0) {
     const redemptionsByBusiness: Record<string, number> = {};
     for (const row of redemptions) {
-      redemptionsByBusiness[row.business_id] = (redemptionsByBusiness[row.business_id] ?? 0) + 1;
+      const businessId = (row as any).business_offers?.business_id;
+      if (businessId) {
+        redemptionsByBusiness[businessId] = (redemptionsByBusiness[businessId] ?? 0) + 1;
+      }
     }
 
     // Upsert into offer_analytics table with monthly redemption counts
