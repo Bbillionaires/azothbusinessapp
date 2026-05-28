@@ -116,7 +116,7 @@ serve(async (req) => {
 
         await supabase
           .from('referral_events')
-          .update({ status: 'completed', updated_at: now })
+          .update({ status: 'completed' })
           .eq('id', event.id)
 
         bonusesAwarded++

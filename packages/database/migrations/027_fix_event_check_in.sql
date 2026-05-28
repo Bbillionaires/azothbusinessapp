@@ -1,4 +1,5 @@
 -- Migration 027: Fix event_check_in function — column names start_at/end_at not starts_at/ends_at
+-- Also fixes checked_in_at → check_in_at (the actual event_rsvps column name from migration 005)
 CREATE OR REPLACE FUNCTION public.event_check_in(
   p_event_id UUID,
   p_user_id UUID
@@ -23,10 +24,10 @@ BEGIN
   END IF;
 
   -- Upsert RSVP with check-in
-  INSERT INTO event_rsvps (event_id, user_id, status, checked_in_at)
+  INSERT INTO event_rsvps (event_id, user_id, status, check_in_at)
   VALUES (p_event_id, p_user_id, 'going', NOW())
   ON CONFLICT (event_id, user_id)
-  DO UPDATE SET checked_in_at = EXCLUDED.checked_in_at, status = 'going';
+  DO UPDATE SET check_in_at = EXCLUDED.check_in_at, status = 'going';
 
   -- Award points for attending
   IF v_event.points_reward > 0 THEN
