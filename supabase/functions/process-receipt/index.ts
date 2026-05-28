@@ -122,7 +122,7 @@ Deno.serve(async (req: Request) => {
         },
         receipt_hash: imageHash,
         image_url: publicUrl,
-        fraud_score: fraudResult.score,
+        fraud_score: fraudResult.score / 100,
         fraud_flags: fraudResult.flags,
         status,
         points_awarded: status === 'pending' ? pointsToAward : 0,
@@ -169,7 +169,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         receipt_id: receipt.id,
         status: receipt.status,
-        fraud_score: fraudResult.score,
+        fraud_score: fraudResult.score / 100,
         fraud_flags: fraudResult.flags,
         ocr: {
           merchant: ocrResult.merchant,
