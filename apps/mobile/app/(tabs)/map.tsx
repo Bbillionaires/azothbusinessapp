@@ -48,7 +48,7 @@ const FILTERS = [
 
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
-  const { location } = useLocationStore();
+  const { coordinates: location } = useLocationStore();
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
