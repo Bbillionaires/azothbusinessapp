@@ -82,7 +82,7 @@ async function getRecentActivity() {
       supabase
         .from('receipts')
         .select('*')
-        .gte('fraud_score', 70)
+        .gte('fraud_score', 0.70)
         .eq('status', 'pending')
         .order('fraud_score', { ascending: false })
         .limit(5),
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   <span className="text-sm font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg">
-                    {r.fraud_score}
+                    {Math.round((r.fraud_score ?? 0) * 100)}
                   </span>
                 </Link>
               ))

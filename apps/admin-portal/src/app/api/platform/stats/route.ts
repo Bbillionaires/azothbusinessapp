@@ -40,7 +40,7 @@ export async function GET() {
       svc.from('businesses').select('id', { count: 'exact', head: true }),
       svc.from('businesses').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       svc.from('receipts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      svc.from('receipts').select('id', { count: 'exact', head: true }).gte('fraud_score', 90).in('status', ['pending', 'flagged']),
+      svc.from('receipts').select('id', { count: 'exact', head: true }).gte('fraud_score', 0.90).in('status', ['pending', 'flagged']),
       svc.from('points_transactions').select('amount').gte('created_at', todayStart).gt('amount', 0),
       svc.from('receipts').select('total').eq('status', 'approved').gte('created_at', monthStart),
       svc.from('ad_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),

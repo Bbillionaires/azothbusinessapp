@@ -79,7 +79,7 @@ export default function UserDetailPage() {
         supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('reviewer_id', id as string),
         supabase.from('referral_events').select('id', { count: 'exact', head: true }).eq('referrer_id', id as string),
         supabase.from('event_rsvps').select('id', { count: 'exact', head: true }).eq('user_id', id as string),
-        supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('user_id', id as string).gte('fraud_score', 90),
+        supabase.from('receipts').select('id', { count: 'exact', head: true }).eq('user_id', id as string).gte('fraud_score', 0.90),
       ]);
 
       setStats({
@@ -133,7 +133,7 @@ export default function UserDetailPage() {
       if (!error) { setUser(prev => prev ? { ...prev, is_banned: false } as any : null); showMsg('Account activated'); }
       else showMsg('Failed: ' + error.message, 'error');
     } else if (action === 'clear_fraud') {
-      const { error } = await supabase.from('receipts').update({ fraud_score: 0, status: 'pending' }).eq('user_id', id as string).gte('fraud_score', 90).in('status', ['pending', 'flagged']);
+      const { error } = await supabase.from('receipts').update({ fraud_score: 0, status: 'pending' }).eq('user_id', id as string).gte('fraud_score', 0.90).in('status', ['pending', 'flagged']);
       if (!error) showMsg('Fraud flags cleared');
       else showMsg('Failed: ' + error.message, 'error');
     } else if (action === 'adjust_points') {

@@ -78,7 +78,7 @@ export default function ReceiptDetailPage() {
               const total = histData.length;
               const approved = histData.filter((r: { status: string }) => r.status === 'approved').length;
               const rejected = histData.filter((r: { status: string }) => r.status === 'rejected').length;
-              const flagged = histData.filter((r: { status: string; fraud_score: number }) => r.status === 'flagged' || r.fraud_score >= 90).length;
+              const flagged = histData.filter((r: { status: string; fraud_score: number }) => r.status === 'flagged' || r.fraud_score >= 0.90).length;
               const profile = (data as unknown as Record<string, unknown>).profiles as { full_name?: string; email?: string; points_balance?: number } | null;
               setUserHistory({
                 total_receipts: total,
