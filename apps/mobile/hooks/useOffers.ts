@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 
 type Offer = {
-  id: string; title: string; description: string | null; type: string;
+  id: string; title: string; description: string | null; offer_type: string;
   discount_percent: number | null; discount_amount: number | null;
   promo_code: string | null; expires_at: string | null;
   starts_at: string; is_active: boolean; max_redemptions: number | null;
@@ -41,7 +41,7 @@ export function useOffers(filters: OffersFilters = {}) {
         .limit(filters.limit ?? 30);
 
       if (filters.business_id) query = query.eq('business_id', filters.business_id);
-      if (filters.offer_type) query = query.eq('type', filters.offer_type);
+      if (filters.offer_type) query = query.eq('offer_type', filters.offer_type);
       if (filters.featured_only) query = query.eq('is_featured', true);
 
       const { data: offers, error: err } = await query;
