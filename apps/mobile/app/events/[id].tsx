@@ -18,9 +18,9 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 
 const EVENT_TYPE_ICONS: Record<string, string> = {
-  popup: '🎪', workshop: '🛠️', sale: '🏷️', performance: '🎵',
-  community: '🤝', grand_opening: '🎊', food: '🍽️', networking: '👥',
-  fundraiser: '🏛', vendor_market: '🎪', other: '📅',
+  vendor_market: '🏪', art_walk: '🎨', food_truck: '🚚',
+  community: '🤝', grand_opening: '🎊', networking: '👥',
+  workshop: '🛠️', fundraiser: '💝', other: '📅',
 };
 
 interface EventData {

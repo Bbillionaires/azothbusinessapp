@@ -29,7 +29,7 @@ interface ReferralProgram {
   title: string | null;
   description: string | null;
   terms: string | null;
-  requirements: string[] | null;
+  requirements: string | null;
   type: string | null;
   rate: number | null;
   rate_type: string | null;
@@ -165,7 +165,9 @@ export default function ReferralProgramDetailScreen() {
   const commStyle = COMMISSION_COLORS[program.type ?? ''] ?? { bg: Colors.surfaceAlt, text: Colors.textSecondary };
   const commLabel = COMMISSION_LABELS[program.type ?? ''] ?? 'Commission';
   const commValue = formatCommissionValue(program);
-  const requirements = program.requirements?.length ? program.requirements : DEFAULT_REQUIREMENTS;
+  const requirements = program.requirements
+    ? program.requirements.split('\n').filter(Boolean)
+    : DEFAULT_REQUIREMENTS;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

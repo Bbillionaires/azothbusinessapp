@@ -17,15 +17,15 @@ type Event = {
 };
 
 const EVENT_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  popup: { label: 'Pop-Up', color: '#7C3AED', bg: '#F3E8FF', icon: '🎪' },
-  workshop: { label: 'Workshop', color: '#0284C7', bg: '#E0F2FE', icon: '🛠️' },
-  sale: { label: 'Sale', color: '#DC2626', bg: '#FEE2E2', icon: '🏷️' },
-  performance: { label: 'Performance', color: '#D97706', bg: '#FEF3C7', icon: '🎵' },
-  community: { label: 'Community', color: '#059669', bg: '#D1FAE5', icon: '🤝' },
-  grand_opening: { label: 'Grand Opening', color: '#1B4332', bg: '#DCFCE7', icon: '🎊' },
-  food: { label: 'Food Event', color: '#EA580C', bg: '#FFEDD5', icon: '🍽️' },
-  networking: { label: 'Networking', color: '#0284C7', bg: '#DBEAFE', icon: '👥' },
-  other: { label: 'Event', color: '#6B7280', bg: '#F3F4F6', icon: '📅' },
+  vendor_market:  { label: 'Vendor Market',  color: '#7C3AED', bg: '#F3E8FF', icon: '🏪' },
+  art_walk:       { label: 'Art Walk',        color: '#D97706', bg: '#FEF3C7', icon: '🎨' },
+  food_truck:     { label: 'Food Trucks',     color: '#EA580C', bg: '#FFEDD5', icon: '🚚' },
+  community:      { label: 'Community',       color: '#059669', bg: '#D1FAE5', icon: '🤝' },
+  grand_opening:  { label: 'Grand Opening',   color: '#1B4332', bg: '#DCFCE7', icon: '🎊' },
+  networking:     { label: 'Networking',      color: '#0284C7', bg: '#DBEAFE', icon: '👥' },
+  workshop:       { label: 'Workshop',        color: '#0284C7', bg: '#E0F2FE', icon: '🛠️' },
+  fundraiser:     { label: 'Fundraiser',      color: '#DC2626', bg: '#FEE2E2', icon: '💝' },
+  other:          { label: 'Event',           color: '#6B7280', bg: '#F3F4F6', icon: '📅' },
 };
 
 const FILTERS = [
