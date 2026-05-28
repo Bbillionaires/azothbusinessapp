@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       type: ad_type,
       budget,
       spent: 0,
+      start_at: new Date().toISOString(),
       target_city,
       status: 'draft',
     })
