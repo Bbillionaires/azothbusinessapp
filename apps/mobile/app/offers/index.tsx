@@ -9,7 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 
 type Offer = {
   id: string; title: string; description: string | null;
-  offer_type: string; discount_percent: number | null; discount_amount: number | null;
+  type: string; discount_percent: number | null; discount_amount: number | null;
   promo_code: string | null; expires_at: string | null; points_bonus: number;
   image_url: string | null; current_redemptions: number; max_redemptions: number | null;
   businesses: { id: string; name: string; city: string; state: string } | null;
@@ -55,7 +55,7 @@ export default function OffersScreen() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (selectedType !== 'all') query = query.eq('offer_type', selectedType);
+    if (selectedType !== 'all') query = query.eq('type', selectedType);
 
     const { data } = await query;
     if (data) setOffers(data as Offer[]);
@@ -117,8 +117,8 @@ export default function OffersScreen() {
               {offer.image_url ? (
                 <Image source={{ uri: offer.image_url }} style={styles.offerImage} resizeMode="cover" />
               ) : (
-                <View style={[styles.offerImagePlaceholder, { backgroundColor: (OFFER_TYPE_COLORS[offer.offer_type] ?? '#1B4332') + '20' }]}>
-                  <Text style={[styles.discountText, { color: OFFER_TYPE_COLORS[offer.offer_type] ?? '#1B4332' }]}>
+                <View style={[styles.offerImagePlaceholder, { backgroundColor: (OFFER_TYPE_COLORS[offer.type] ?? '#1B4332') + '20' }]}>
+                  <Text style={[styles.discountText, { color: OFFER_TYPE_COLORS[offer.type] ?? '#1B4332' }]}>
                     {formatDiscount(offer)}
                   </Text>
                 </View>
@@ -126,8 +126,8 @@ export default function OffersScreen() {
 
               <View style={styles.offerContent}>
                 <View style={styles.offerHeader}>
-                  <View style={[styles.typeBadge, { backgroundColor: OFFER_TYPE_COLORS[offer.offer_type] ?? '#1B4332' }]}>
-                    <Text style={styles.typeBadgeText}>{OFFER_TYPE_LABELS[offer.offer_type] ?? offer.offer_type}</Text>
+                  <View style={[styles.typeBadge, { backgroundColor: OFFER_TYPE_COLORS[offer.type] ?? '#1B4332' }]}>
+                    <Text style={styles.typeBadgeText}>{OFFER_TYPE_LABELS[offer.type] ?? offer.type}</Text>
                   </View>
                   {offer.points_bonus > 0 && (
                     <View style={styles.pointsBadge}>
