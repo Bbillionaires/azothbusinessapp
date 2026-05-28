@@ -52,7 +52,7 @@ export default function BusinessDetailScreen() {
       if (activeTab === 'Reviews') {
         const { data } = await supabase
           .from('reviews')
-          .select('id, rating, title, body, created_at, profiles(full_name, tier)')
+          .select('id, rating, title, body, created_at, profiles!reviewer_id(full_name, tier)')
           .eq('business_id', id)
           .eq('status', 'published')
           .order('created_at', { ascending: false })

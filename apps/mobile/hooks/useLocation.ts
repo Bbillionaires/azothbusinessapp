@@ -17,9 +17,12 @@ export interface LatLng {
 export interface UseLocationResult {
   location: LatLng | null;
   city: string | null;
+  locationLabel: string;
+  hasPermission: boolean;
   loading: boolean;
   error: string | null;
   refreshLocation: () => Promise<void>;
+  requestPermission: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,6 +32,7 @@ export interface UseLocationResult {
 export function useLocation(): UseLocationResult {
   const [location, setLocation] = useState<LatLng | null>(null);
   const [city, setCity]         = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
@@ -40,9 +44,11 @@ export function useLocation(): UseLocationResult {
       // 1. Request foreground permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== Location.PermissionStatus.GRANTED) {
+        setHasPermission(false);
         setError('Location permission was denied.');
         return;
       }
+      setHasPermission(true);
 
       // 2. Get current position
       const position = await Location.getCurrentPositionAsync({
@@ -79,11 +85,16 @@ export function useLocation(): UseLocationResult {
     resolveLocation();
   }, [resolveLocation]);
 
+  const locationLabel = city ?? (location ? `${location.lat.toFixed(2)}, ${location.lng.toFixed(2)}` : 'Locating…');
+
   return {
     location,
     city,
+    locationLabel,
+    hasPermission,
     loading,
     error,
     refreshLocation: resolveLocation,
+    requestPermission: resolveLocation,
   };
 }
