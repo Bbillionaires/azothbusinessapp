@@ -37,12 +37,12 @@ interface JobApplication {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  applied:   { label: 'Applied',    color: '#3B82F6', icon: 'time-outline' },
-  reviewed:  { label: 'Reviewed',   color: '#8B5CF6', icon: 'eye-outline' },
-  interview: { label: 'Interview',  color: '#F59E0B', icon: 'calendar-outline' },
-  offered:   { label: 'Offered',    color: Colors.success, icon: 'checkmark-circle-outline' },
-  rejected:  { label: 'Not Moving Forward', color: Colors.error, icon: 'close-circle-outline' },
-  withdrawn: { label: 'Withdrawn',  color: Colors.textSecondary, icon: 'remove-circle-outline' },
+  applied:      { label: 'Applied',            color: '#3B82F6', icon: 'time-outline' },
+  reviewing:    { label: 'Under Review',        color: '#8B5CF6', icon: 'eye-outline' },
+  interviewed:  { label: 'Interview Scheduled', color: '#F59E0B', icon: 'calendar-outline' },
+  offered:      { label: 'Offered',             color: Colors.success, icon: 'checkmark-circle-outline' },
+  hired:        { label: 'Hired!',              color: Colors.success, icon: 'trophy-outline' },
+  rejected:     { label: 'Not Moving Forward',  color: Colors.error, icon: 'close-circle-outline' },
 };
 
 export default function JobApplicationsScreen() {
