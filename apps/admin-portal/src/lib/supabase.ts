@@ -45,7 +45,7 @@ export function createSupabaseServiceClient() {
 // Database type helpers
 export type AdminRole = 'admin_staff' | 'admin_manager' | 'super_admin';
 
-export type ReceiptStatus = 'pending' | 'approved' | 'rejected' | 'flagged' | 'duplicate' | 'suspicious' | 'resubmission_requested';
+export type ReceiptStatus = 'pending' | 'approved' | 'rejected' | 'duplicate' | 'suspicious' | 'resubmission_requested';
 
 export type BusinessStatus = 'pending' | 'active' | 'suspended' | 'closed' | 'rejected' | 'under_review';
 

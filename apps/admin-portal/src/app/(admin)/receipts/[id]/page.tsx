@@ -78,7 +78,7 @@ export default function ReceiptDetailPage() {
               const total = histData.length;
               const approved = histData.filter((r: { status: string }) => r.status === 'approved').length;
               const rejected = histData.filter((r: { status: string }) => r.status === 'rejected').length;
-              const flagged = histData.filter((r: { status: string; fraud_score: number }) => r.status === 'flagged' || r.fraud_score >= 0.90).length;
+              const flagged = histData.filter((r: { status: string; fraud_score: number }) => r.status === 'suspicious' || r.fraud_score >= 0.90).length;
               const profile = (data as unknown as Record<string, unknown>).profiles as { full_name?: string; email?: string; points_balance?: number } | null;
               setUserHistory({
                 total_receipts: total,
@@ -110,7 +110,7 @@ export default function ReceiptDetailPage() {
     const statusMap: Record<ActionType, string> = {
       approve: 'approved',
       reject: 'rejected',
-      fraud: 'flagged',
+      fraud: 'suspicious',
       resubmit: 'resubmission_requested',
     };
 
@@ -376,7 +376,7 @@ export default function ReceiptDetailPage() {
           </div>
 
           {/* Action buttons */}
-          {receipt.status === 'pending' || receipt.status === 'flagged' ? (
+          {receipt.status === 'pending' || receipt.status === 'suspicious' ? (
             <div className="admin-card p-4">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Actions</p>
               <div className="flex flex-wrap gap-2.5">

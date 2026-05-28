@@ -24,7 +24,7 @@ import {
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'all', label: 'All Statuses' },
   { value: 'pending', label: 'Pending' },
-  { value: 'flagged', label: 'Flagged' },
+  { value: 'suspicious', label: 'Suspicious' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'resubmission_requested', label: 'Resubmission Requested' },

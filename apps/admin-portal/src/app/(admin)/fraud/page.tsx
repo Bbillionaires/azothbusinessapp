@@ -145,7 +145,7 @@ export default function FraudPage() {
     const now = new Date();
     return d.toDateString() === now.toDateString();
   }).length;
-  const pendingReview = receipts.filter(r => r.status === 'pending' || r.status === 'flagged').length;
+  const pendingReview = receipts.filter(r => r.status === 'pending' || r.status === 'suspicious').length;
   const totalAll = receipts.length;
   const fraudRate = totalAll > 0 ? ((highRisk / totalAll) * 100).toFixed(1) + '%' : '—';
 

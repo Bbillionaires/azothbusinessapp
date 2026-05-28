@@ -91,7 +91,6 @@ export async function POST(
       businessUpdate.status = 'active'
       businessUpdate.verification_level =
         body.verification_level ?? 'basic'
-      businessUpdate.verified_at = new Date().toISOString()
     } else {
       // Set verification level to none when unverifying
       businessUpdate.verification_level = 'none'
