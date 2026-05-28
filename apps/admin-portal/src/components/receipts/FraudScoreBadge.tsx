@@ -12,8 +12,9 @@ interface FraudLevel {
   barColor: string;
 }
 
+// score is stored as 0.0–1.0 in DB; display as 0–100 percentage
 export function getFraudLevel(score: number): FraudLevel {
-  if (score < 20) {
+  if (score < 0.20) {
     return {
       label: 'Low Risk',
       color: 'text-green-400',
@@ -22,7 +23,7 @@ export function getFraudLevel(score: number): FraudLevel {
       barColor: 'bg-green-500',
     };
   }
-  if (score < 50) {
+  if (score < 0.50) {
     return {
       label: 'Review',
       color: 'text-yellow-400',
@@ -31,7 +32,7 @@ export function getFraudLevel(score: number): FraudLevel {
       barColor: 'bg-yellow-500',
     };
   }
-  if (score < 80) {
+  if (score < 0.80) {
     return {
       label: 'Suspicious',
       color: 'text-orange-400',
@@ -51,7 +52,7 @@ export function getFraudLevel(score: number): FraudLevel {
 
 export default function FraudScoreBadge({ score, showLabel = true, size = 'md' }: FraudScoreBadgeProps) {
   const level = getFraudLevel(score);
-  const clampedScore = Math.max(0, Math.min(100, score));
+  const clampedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
 
   if (size === 'sm') {
     return (

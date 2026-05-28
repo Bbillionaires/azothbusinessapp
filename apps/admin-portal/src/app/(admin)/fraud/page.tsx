@@ -41,7 +41,7 @@ const FLAG_COLORS = {
 };
 
 const SCORE_COLORS = (score: number) =>
-  score >= 80 ? '#EF4444' : score >= 50 ? '#F97316' : score >= 30 ? '#EAB308' : '#22C55E';
+  score >= 0.80 ? '#EF4444' : score >= 0.50 ? '#F97316' : score >= 0.30 ? '#EAB308' : '#22C55E';
 
 function getFlagKeys(fraud_flags: FraudReceipt['fraud_flags']): string[] {
   if (!fraud_flags) return [];
@@ -52,22 +52,22 @@ function getFlagKeys(fraud_flags: FraudReceipt['fraud_flags']): string[] {
 
 function buildScoreDistribution(receipts: FraudReceipt[]) {
   const buckets = [
-    { range: '0-9', count: 0, label: 'Clean' },
-    { range: '10-19', count: 0, label: 'Low Risk' },
-    { range: '20-29', count: 0, label: 'Review' },
-    { range: '30-49', count: 0, label: 'Suspicious' },
-    { range: '50-69', count: 0, label: 'High Risk' },
-    { range: '70-89', count: 0, label: 'Fraud' },
-    { range: '90+', count: 0, label: 'Confirmed' },
+    { range: '0-9%', count: 0, label: 'Clean' },
+    { range: '10-19%', count: 0, label: 'Low Risk' },
+    { range: '20-29%', count: 0, label: 'Review' },
+    { range: '30-49%', count: 0, label: 'Suspicious' },
+    { range: '50-69%', count: 0, label: 'High Risk' },
+    { range: '70-89%', count: 0, label: 'Fraud' },
+    { range: '90%+', count: 0, label: 'Confirmed' },
   ];
   receipts.forEach(r => {
     const s = r.fraud_score;
-    if (s < 10) buckets[0].count++;
-    else if (s < 20) buckets[1].count++;
-    else if (s < 30) buckets[2].count++;
-    else if (s < 50) buckets[3].count++;
-    else if (s < 70) buckets[4].count++;
-    else if (s < 90) buckets[5].count++;
+    if (s < 0.10) buckets[0].count++;
+    else if (s < 0.20) buckets[1].count++;
+    else if (s < 0.30) buckets[2].count++;
+    else if (s < 0.50) buckets[3].count++;
+    else if (s < 0.70) buckets[4].count++;
+    else if (s < 0.90) buckets[5].count++;
     else buckets[6].count++;
   });
   return buckets;
@@ -110,7 +110,7 @@ export default function FraudPage() {
     let query = supabase
       .from('receipts')
       .select('*, profiles!user_id(full_name, email), businesses(name)')
-      .gte('fraud_score', 30)
+      .gte('fraud_score', 0.30)
       .order('fraud_score', { ascending: false })
       .limit(50);
 
@@ -138,7 +138,7 @@ export default function FraudPage() {
   const flagCounts = buildFlagCounts(receipts);
   const maxFlagCount = Math.max(...flagCounts.map(f => f.count), 1);
 
-  const highRisk = receipts.filter(r => r.fraud_score >= 70).length;
+  const highRisk = receipts.filter(r => r.fraud_score >= 0.70).length;
   const flaggedToday = receipts.filter(r => {
     if (!r.created_at) return false;
     const d = new Date(r.created_at);
@@ -285,7 +285,7 @@ export default function FraudPage() {
                         className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
                         style={{ backgroundColor: SCORE_COLORS(receipt.fraud_score) }}
                       >
-                        {receipt.fraud_score}
+                        {Math.round(receipt.fraud_score * 100)}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap">

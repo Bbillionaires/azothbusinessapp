@@ -27,7 +27,7 @@ interface Job {
   id: string; title: string; type: string; is_remote: boolean; location: string | null;
 }
 interface Offer {
-  id: string; title: string; offer_type: string; discount_percent: number | null;
+  id: string; title: string; type: string; discount_percent: number | null;
   discount_amount: number | null; expires_at: string | null;
 }
 
@@ -80,7 +80,7 @@ export default function BusinessDetailScreen() {
       } else if (activeTab === 'Offers') {
         const { data } = await supabase
           .from('business_offers')
-          .select('id, title, offer_type, discount_percent, discount_amount, expires_at')
+          .select('id, title, type, discount_percent, discount_amount, expires_at')
           .eq('business_id', id)
           .eq('is_active', true)
           .order('created_at', { ascending: false })
@@ -367,7 +367,7 @@ export default function BusinessDetailScreen() {
                 <View key={offer.id} style={styles.offerCard}>
                   <View style={styles.offerLeft}>
                     <Text style={styles.offerDiscount}>
-                      {offer.discount_percent ? `${offer.discount_percent}% OFF` : offer.discount_amount ? `$${offer.discount_amount} OFF` : offer.offer_type}
+                      {offer.discount_percent ? `${offer.discount_percent}% OFF` : offer.discount_amount ? `$${offer.discount_amount} OFF` : offer.type.replace(/_/g, ' ')}
                     </Text>
                   </View>
                   <View style={styles.offerBody}>

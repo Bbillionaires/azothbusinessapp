@@ -115,9 +115,7 @@ export async function POST(req: NextRequest) {
     .insert({
       business_id: businessId,
       url: publicUrl,
-      storage_path: storagePath,
       uploaded_by: user.id,
-      created_at: new Date().toISOString(),
     })
     .select()
     .single()

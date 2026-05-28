@@ -71,7 +71,7 @@ export default function ReceiptsPage() {
 
   // Client-side filter for search and fraud score
   const filteredReceipts = receipts.filter((r) => {
-    if (minFraudScore && r.fraud_score < parseInt(minFraudScore)) return false;
+    if (minFraudScore && r.fraud_score < parseInt(minFraudScore) / 100) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!r.merchant_name.toLowerCase().includes(q) && !r.user_id.includes(q)) return false;
@@ -275,7 +275,7 @@ export default function ReceiptsPage() {
         <span>·</span>
         <span className="text-yellow-400">{filteredReceipts.filter((r) => r.status === 'pending').length} pending</span>
         <span>·</span>
-        <span className="text-red-400">{filteredReceipts.filter((r) => r.fraud_score >= 70).length} high risk</span>
+        <span className="text-red-400">{filteredReceipts.filter((r) => r.fraud_score >= 0.70).length} high risk</span>
       </div>
 
       {/* Table */}
