@@ -33,7 +33,6 @@ interface ReferralProgram {
   type: string | null;
   rate: number | null;
   rate_type: string | null;
-  min_payout: number | null;
   is_active: boolean;
   created_at: string | null;
   businesses?: {
@@ -51,24 +50,24 @@ interface ReferralProgram {
 // ---------------------------------------------------------------------------
 
 const COMMISSION_LABELS: Record<string, string> = {
-  per_lead:       'Per Lead',
-  per_sale:       'Per Sale',
-  per_signup:     'Per Signup',
-  revenue_share:  'Revenue Share',
-  flat:           'Flat Rate',
+  pay_per_lead:        'Per Lead',
+  pay_per_appointment: 'Per Appointment',
+  pay_per_sale:        'Per Sale',
+  affiliate:           'Affiliate',
+  commission:          'Commission',
 };
 
 const COMMISSION_COLORS: Record<string, { bg: string; text: string }> = {
-  per_lead:       { bg: '#EBF8FF', text: '#2B6CB0' },
-  per_sale:       { bg: '#F0FFF4', text: '#276749' },
-  per_signup:     { bg: '#F3E8FF', text: '#6B21A8' },
-  revenue_share:  { bg: '#FFFBEB', text: '#B7791F' },
-  flat:           { bg: '#FFF5F5', text: '#C53030' },
+  pay_per_lead:        { bg: '#EBF8FF', text: '#2B6CB0' },
+  pay_per_appointment: { bg: '#F3E8FF', text: '#6B21A8' },
+  pay_per_sale:        { bg: '#F0FFF4', text: '#276749' },
+  affiliate:           { bg: '#FFFBEB', text: '#B7791F' },
+  commission:          { bg: '#FFF5F5', text: '#C53030' },
 };
 
 function formatCommissionValue(program: ReferralProgram): string {
   if (!program.rate) return '—';
-  if (program.rate_type === 'percent') {
+  if (program.rate_type === 'percentage') {
     return `${program.rate}%`;
   }
   return `$${program.rate.toFixed(0)}`;
@@ -213,12 +212,6 @@ export default function ReferralProgramDetailScreen() {
                 <Text style={[styles.commissionTypeText, { color: commStyle.text }]}>{commLabel}</Text>
               </View>
             </View>
-            {program.min_payout ? (
-              <View style={styles.minPayoutBox}>
-                <Text style={styles.minPayoutLabel}>Min. Payout</Text>
-                <Text style={styles.minPayoutValue}>${program.min_payout}</Text>
-              </View>
-            ) : null}
           </View>
         </View>
 

@@ -62,23 +62,23 @@ interface ReferralProgram {
 // ---------------------------------------------------------------------------
 
 const COMMISSION_LABELS: Record<string, string> = {
-  per_lead:       'Per Lead',
-  per_sale:       'Per Sale',
-  per_signup:     'Per Signup',
-  revenue_share:  'Revenue Share',
-  flat:           'Flat Rate',
+  pay_per_lead:        'Per Lead',
+  pay_per_appointment: 'Per Appointment',
+  pay_per_sale:        'Per Sale',
+  affiliate:           'Affiliate',
+  commission:          'Commission',
 };
 
 const COMMISSION_COLORS: Record<string, { bg: string; text: string }> = {
-  per_lead:       { bg: '#EBF8FF', text: '#2B6CB0' },
-  per_sale:       { bg: '#F0FFF4', text: '#276749' },
-  per_signup:     { bg: '#F3E8FF', text: '#6B21A8' },
-  revenue_share:  { bg: '#FFFBEB', text: '#B7791F' },
-  flat:           { bg: '#FFF5F5', text: '#C53030' },
+  pay_per_lead:        { bg: '#EBF8FF', text: '#2B6CB0' },
+  pay_per_appointment: { bg: '#F3E8FF', text: '#6B21A8' },
+  pay_per_sale:        { bg: '#F0FFF4', text: '#276749' },
+  affiliate:           { bg: '#FFFBEB', text: '#B7791F' },
+  commission:          { bg: '#FFF5F5', text: '#C53030' },
 };
 
 function formatCommission(program: ReferralProgram): string {
-  if (program.rate_type === 'percent') {
+  if (program.rate_type === 'percentage') {
     return `${program.rate}% of sale`;
   }
   if (program.rate) {

@@ -15,12 +15,11 @@ type Job = {
 };
 
 const JOB_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  full_time: { label: 'Full-time', color: '#166534', bg: '#DCFCE7' },
-  part_time: { label: 'Part-time', color: '#1e40af', bg: '#DBEAFE' },
-  contract: { label: 'Contract', color: '#7C3AED', bg: '#EDE9FE' },
+  full_time:  { label: 'Full-time',  color: '#166534', bg: '#DCFCE7' },
+  part_time:  { label: 'Part-time',  color: '#1e40af', bg: '#DBEAFE' },
+  contract:   { label: 'Contract',   color: '#7C3AED', bg: '#EDE9FE' },
   internship: { label: 'Internship', color: '#D97706', bg: '#FEF3C7' },
-  temporary: { label: 'Temporary', color: '#6B7280', bg: '#F3F4F6' },
-  volunteer: { label: 'Volunteer', color: '#059669', bg: '#D1FAE5' },
+  volunteer:  { label: 'Volunteer',  color: '#059669', bg: '#D1FAE5' },
 };
 
 const EXPERIENCE_CONFIG: Record<string, string> = {
