@@ -133,7 +133,7 @@ export default function UserDetailPage() {
       if (!error) { setUser(prev => prev ? { ...prev, is_banned: false } as any : null); showMsg('Account activated'); }
       else showMsg('Failed: ' + error.message, 'error');
     } else if (action === 'clear_fraud') {
-      const { error } = await supabase.from('receipts').update({ fraud_score: 0, status: 'pending' }).eq('user_id', id as string).gte('fraud_score', 0.90).in('status', ['pending', 'flagged']);
+      const { error } = await supabase.from('receipts').update({ fraud_score: 0, status: 'pending' }).eq('user_id', id as string).gte('fraud_score', 0.90).in('status', ['pending', 'suspicious']);
       if (!error) showMsg('Fraud flags cleared');
       else showMsg('Failed: ' + error.message, 'error');
     } else if (action === 'adjust_points') {
