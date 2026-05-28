@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   let query = service
     .from('businesses')
-    .select('id, name, category, city, state, status, verification_level, verified_at, is_featured, created_at, owner_id, profiles!inner(full_name, email)', { count: 'exact' })
+    .select('id, name, category, city, state, status, verification_level, is_featured, created_at, owner_id, profiles!owner_id(full_name, email)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 

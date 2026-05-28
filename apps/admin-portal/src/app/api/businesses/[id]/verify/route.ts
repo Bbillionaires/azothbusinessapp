@@ -94,7 +94,6 @@ export async function POST(
     } else {
       // Set verification level to none when unverifying
       businessUpdate.verification_level = 'none'
-      businessUpdate.verified_at = null
     }
 
     // Update the business

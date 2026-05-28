@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   let query = service
     .from('receipts')
-    .select('id, created_at, total, status, fraud_score, merchant_name, user_id, image_url, profiles!inner(full_name)', { count: 'exact' })
+    .select('id, created_at, total, status, fraud_score, merchant_name, user_id, image_url, profiles!user_id(full_name)', { count: 'exact' })
     .order('fraud_score', { ascending: false })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
