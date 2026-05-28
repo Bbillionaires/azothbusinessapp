@@ -31,19 +31,22 @@ export interface BusinessSummary {
   category: string | null;
   city: string | null;
   state: string | null;
+  latitude: number | null;
+  longitude: number | null;
   average_rating: number | null;
   total_reviews: number;
   is_featured: boolean;
+  is_top_rated: boolean;
   is_local_owned: boolean;
   is_community_owned: boolean;
   is_veteran_owned: boolean;
   is_woman_owned: boolean;
+  is_nonprofit_owned: boolean;
   verification_level: string;
   hiring_now: boolean;
   has_upcoming_event: boolean;
   has_free_today: boolean;
-  status: string;
-  distance_miles?: number | null;
+  distance_km: number | null;
 }
 
 export interface BusinessDetail extends BusinessSummary {
@@ -82,16 +85,30 @@ export function useBusinesses(filters: BusinessFilters = {}) {
       const currentOffset = reset ? 0 : offset;
 
       try {
+        const badges = filters.filter_badges ?? [];
+        const hasFilter = (key: string) => badges.includes(key) ? true : null;
+        const verificationFilter =
+          badges.includes('verified') || filters.filter_verified
+            ? ['basic', 'pro', 'elite', 'community_trusted']
+            : null;
+
         const { data: rows, error: rpcError } = await supabase.rpc('search_businesses', {
-          search_query:   filters.search_query   ?? null,
-          lat:            filters.lat            ?? null,
-          lng:            filters.lng            ?? null,
-          radius_miles:   filters.radius_miles   ?? null,
-          filter_badges:  filters.filter_badges  ?? null,
-          filter_verified: filters.filter_verified ?? null,
-          filter_city:    filters.filter_city    ?? null,
-          limit_n:        limit,
-          offset_n:       currentOffset,
+          p_query:               filters.search_query       ?? null,
+          p_city:                filters.filter_city        ?? null,
+          p_lat:                 filters.lat                ?? null,
+          p_lng:                 filters.lng                ?? null,
+          p_radius_km:           filters.radius_miles ? filters.radius_miles * 1.60934 : null,
+          p_is_local_owned:      hasFilter('local'),
+          p_is_community_owned:  hasFilter('community'),
+          p_is_veteran_owned:    hasFilter('veteran'),
+          p_is_woman_owned:      null,
+          p_is_nonprofit_owned:  null,
+          p_hiring_now:          hasFilter('hiring_now'),
+          p_has_free_today:      hasFilter('free_today'),
+          p_has_upcoming_event:  hasFilter('events'),
+          p_verification_levels: verificationFilter,
+          p_limit:               limit,
+          p_offset:              currentOffset,
         });
 
         if (rpcError) throw rpcError;

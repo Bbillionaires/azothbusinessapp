@@ -23,7 +23,7 @@ export function useBusinessReviews(businessId: string, limit = 20) {
     try {
       const { data: reviews, count, error: err } = await supabase
         .from('reviews')
-        .select('*, profiles(full_name, avatar_url, tier), review_responses(body, created_at)', { count: 'exact' })
+        .select('*, profiles!reviewer_id(full_name, avatar_url, tier), review_responses(body, created_at)', { count: 'exact' })
         .eq('business_id', businessId)
         .eq('status', 'published')
         .order('weight', { ascending: false })

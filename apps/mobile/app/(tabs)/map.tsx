@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocationStore } from '../../store/locationStore';
 import { useBusinesses } from '../../hooks/useBusinesses';
 import { BusinessCard } from '../../components/business/BusinessCard';
-import { BusinessFilters } from '../../components/business/BusinessFilters';
+import { BusinessFilters, FILTER_OPTIONS } from '../../components/business/BusinessFilters';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { THEME } from '../../lib/theme';
 import type { BusinessSummary as Business } from '../../hooks/useBusinesses';
@@ -36,15 +36,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   default: '📍',
 };
 
-const FILTERS = [
-  { key: 'hiring_now', label: '🟢 Hiring', field: 'hiring_now' },
-  { key: 'free_today', label: '🎁 Free Today', field: 'has_free_today' },
-  { key: 'events', label: '📅 Events', field: 'has_upcoming_event' },
-  { key: 'local', label: '🏠 Local', field: 'is_local_owned' },
-  { key: 'community', label: '🤝 Community', field: 'is_community_owned' },
-  { key: 'veteran', label: '🎖 Veteran', field: 'is_veteran_owned' },
-  { key: 'verified', label: '✔ Verified', field: 'verification_level' },
-];
 
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
@@ -127,7 +118,7 @@ export default function MapScreen() {
           contentContainerStyle={styles.activeFilterContent}
         >
           {activeFilters.map(key => {
-            const filter = FILTERS.find(f => f.key === key);
+            const filter = FILTER_OPTIONS.find(f => f.key === key);
             return (
               <TouchableOpacity
                 key={key}
