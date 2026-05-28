@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 
 type Review = {
-  id: string; rating: number; title: string | null; body: string; tags: string[] | null;
+  id: string; rating: number; title: string | null; body: string;
   status: string; weight: number; helpful_count: number;
   created_at: string; reviewer_id: string;
   profiles?: { full_name: string | null; avatar_url: string | null; tier: string | null } | null;

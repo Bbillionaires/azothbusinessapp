@@ -29,7 +29,7 @@ export interface JobPosting {
   type: 'full_time' | 'part_time' | 'contract' | 'volunteer' | 'internship';
   salary_min: number | null;
   salary_max: number | null;
-  salary_type: 'hourly' | 'annual' | null;
+  salary_type: 'hourly' | 'annual' | 'fixed' | null;
   city: string | null;
   state: string | null;
   location: string | null;
@@ -56,7 +56,7 @@ export interface JobApplication {
   applicant_id: string;
   cover_letter: string | null;
   resume_url: string | null;
-  status: 'applied' | 'reviewed' | 'interview' | 'hired' | 'rejected';
+  status: 'applied' | 'reviewing' | 'interviewed' | 'offered' | 'hired' | 'rejected';
   created_at: string;
   updated_at: string;
 }
