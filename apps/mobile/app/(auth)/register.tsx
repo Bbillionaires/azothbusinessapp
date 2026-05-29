@@ -23,7 +23,7 @@ import { Colors, Spacing, Radius, FontSize, FontWeight, Shadows } from '../../li
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { signUp, isLoading, clearError } = useAuth();
+  const { signUp, loading: isLoading, clearError } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');

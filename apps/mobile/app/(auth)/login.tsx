@@ -23,7 +23,7 @@ import { Colors, Spacing, Radius, FontSize, FontWeight, Shadows } from '../../li
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, isLoading, error, clearError } = useAuth();
+  const { signIn, loading: isLoading, error, clearError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

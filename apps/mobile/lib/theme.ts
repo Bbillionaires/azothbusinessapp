@@ -23,6 +23,7 @@ export const Colors = {
   borderStrong: '#CED4DA',
 
   // Text
+  text: '#1A1A2E',
   textPrimary: '#1A1A2E',
   textSecondary: '#4A5568',
   textTertiary: '#718096',
@@ -137,6 +138,8 @@ export const Shadows = {
     elevation: 10,
   },
 } as const;
+
+export const THEME = { colors: Colors } as const;
 
 export const TierColors: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
   bronze:   { color: Colors.bronze,   bg: Colors.bronzeBg,   label: 'Bronze',   emoji: '🥉' },
