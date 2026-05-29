@@ -50,7 +50,7 @@ export function BusinessBadges({ business, scrollable = false, compact = false }
           label={b.label}
           variant={b.variant}
           small={compact}
-          style={i < badges.length - 1 ? styles.badgeSpacing : undefined}
+          {...(i < badges.length - 1 ? { style: styles.badgeSpacing } : {})}
         />
       ))}
     </View>

@@ -6,11 +6,11 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Colors, FontWeight, Radius } from '../../lib/theme';
 
-interface AvatarProps {
-  uri?: string | null;
-  name?: string | null;
+export interface AvatarProps {
+  uri?: string | null | undefined;
+  name?: string | null | undefined;
   size?: number;
-  borderColor?: string;
+  borderColor?: string | undefined;
   borderWidth?: number;
 }
 

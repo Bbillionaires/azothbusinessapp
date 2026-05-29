@@ -57,7 +57,7 @@ export default function MyReviewsScreen() {
         .select('id, rating, body, status, created_at, helpful_count, business:businesses(id, name, city, state)')
         .eq('reviewer_id', user!.id)
         .order('created_at', { ascending: false });
-      setReviews((data ?? []) as MyReview[]);
+      setReviews((data ?? []) as unknown as MyReview[]);
       setLoading(false);
     }
     load();

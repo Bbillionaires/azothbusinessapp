@@ -57,8 +57,8 @@ export default function MapScreen() {
     lat: initialRegion.latitude,
     lng: initialRegion.longitude,
     radius_miles: 10,
-    search_query: searchQuery || undefined,
-    filter_badges: activeFilters.length > 0 ? activeFilters : undefined,
+    ...(searchQuery ? { search_query: searchQuery } : {}),
+    ...(activeFilters.length > 0 ? { filter_badges: activeFilters } : {}),
   });
 
   const toggleFilter = useCallback((key: string) => {
@@ -92,8 +92,6 @@ export default function MapScreen() {
             onChangeText={setSearchQuery}
             placeholder="Search businesses near you..."
             style={styles.searchBar}
-            editable={false}
-            pointerEvents="none"
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -205,7 +203,7 @@ export default function MapScreen() {
         {selectedBusiness ? (
           <View style={styles.selectedBusinessContainer}>
             <BusinessCard
-              business={selectedBusiness}
+              business={selectedBusiness as unknown as import('../../../../packages/shared/src/types/business').BusinessCard}
               onPress={() => router.push(`/business/${selectedBusiness.id}`)}
             />
             <TouchableOpacity
@@ -235,7 +233,7 @@ export default function MapScreen() {
               businesses.map(b => (
                 <BusinessCard
                   key={b.id}
-                  business={b}
+                  business={b as unknown as import('../../../../packages/shared/src/types/business').BusinessCard}
                   onPress={() => router.push(`/business/${b.id}`)}
                 />
               ))

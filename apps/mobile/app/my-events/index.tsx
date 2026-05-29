@@ -67,7 +67,7 @@ export default function MyEventsScreen() {
         `)
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
-      setRsvps((data ?? []) as MyEvent[]);
+      setRsvps((data ?? []) as unknown as MyEvent[]);
       setLoading(false);
     }
     load();

@@ -102,8 +102,8 @@ export default function ReferralProgramDetailScreen() {
       .single()
       .then(({ data, error }) => {
         if (!error && data) setProgram(data as ReferralProgram);
-      })
-      .finally(() => setIsLoading(false));
+        setIsLoading(false);
+      }, () => setIsLoading(false));
   }, [id]);
 
   const handleApply = async () => {
@@ -184,7 +184,7 @@ export default function ReferralProgramDetailScreen() {
         {/* Program identity */}
         <View style={styles.identityCard}>
           <View style={styles.bizAvatar}>
-            <Text style={styles.bizAvatarText}>{(business?.name ?? '?')[0].toUpperCase()}</Text>
+            <Text style={styles.bizAvatarText}>{((business?.name ?? '?')[0] ?? '?').toUpperCase()}</Text>
           </View>
           <View style={styles.bizInfo}>
             <Text style={styles.bizName}>{business?.name ?? 'Unknown Business'}</Text>

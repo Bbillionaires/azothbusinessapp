@@ -48,9 +48,9 @@ export function RewardCard({ reward, userPoints, onRedeem }: RewardCardProps) {
             {reward.description}
           </Text>
         )}
-        {reward.businesses && (
+        {reward.business && (
           <Text style={styles.businessName} numberOfLines={1}>
-            {(reward as any).businesses?.name}
+            {reward.business?.name}
           </Text>
         )}
       </View>

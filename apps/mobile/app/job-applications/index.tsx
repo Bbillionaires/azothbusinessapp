@@ -64,7 +64,7 @@ export default function JobApplicationsScreen() {
         `)
         .eq('applicant_id', user!.id)
         .order('created_at', { ascending: false });
-      setApplications((data ?? []) as JobApplication[]);
+      setApplications((data ?? []) as unknown as JobApplication[]);
       setLoading(false);
     }
     load();
@@ -96,7 +96,7 @@ export default function JobApplicationsScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => {
-            const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.applied;
+            const config = STATUS_CONFIG[item.status] ?? STATUS_CONFIG['applied'] ?? { label: 'Applied', color: '#0284C7', icon: 'paper-plane-outline' };
             const biz = item.job_posting.businesses;
             const salaryLabel = (() => {
               const { salary_min, salary_max, salary_type } = item.job_posting;

@@ -137,7 +137,7 @@ export default function RewardsScreen() {
                 {filteredRewards.map(reward => (
                   <RewardCard
                     key={reward.id}
-                    reward={reward}
+                    reward={reward as unknown as import('../../../../packages/shared/src/types/rewards').RewardCatalogWithBusiness}
                     userPoints={points}
                     onRedeem={() => redeemReward(reward.id)}
                   />
@@ -174,7 +174,7 @@ export default function RewardsScreen() {
 
         {activeTab === 'history' && (
           <View style={styles.historySection}>
-            <PointsHistory transactions={pointsHistory} />
+            <PointsHistory transactions={pointsHistory as unknown as import('../../../../packages/shared/src/types/rewards').PointsTransaction[]} />
           </View>
         )}
       </ScrollView>

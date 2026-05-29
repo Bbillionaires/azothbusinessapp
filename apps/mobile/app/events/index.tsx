@@ -155,7 +155,7 @@ export default function EventsScreen() {
               <Text style={styles.emptyText}>Local businesses will be posting events soon. Check back!</Text>
             </View>
           ) : events.map(event => {
-            const config = EVENT_TYPE_CONFIG[event.type] ?? EVENT_TYPE_CONFIG.other;
+            const config = EVENT_TYPE_CONFIG[event.type] ?? EVENT_TYPE_CONFIG['other'] ?? { label: 'Event', color: '#6B7280', bg: '#F3F4F6', icon: '📅' };
             const isRsvpd = rsvpdIds.has(event.id);
             const isFull = event.max_attendees !== null && event.current_attendees >= event.max_attendees;
 

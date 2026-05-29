@@ -74,10 +74,10 @@ export default function SearchScreen() {
     ]);
 
     setResults({
-      businesses: (bizRes.data ?? []) as BizResult[],
-      events: (eventRes.data ?? []) as EventResult[],
-      jobs: (jobRes.data ?? []) as JobResult[],
-      deals: (dealRes.data ?? []) as DealResult[],
+      businesses: (bizRes.data ?? []) as unknown as BizResult[],
+      events: (eventRes.data ?? []) as unknown as EventResult[],
+      jobs: (jobRes.data ?? []) as unknown as JobResult[],
+      deals: (dealRes.data ?? []) as unknown as DealResult[],
     });
     setLoading(false);
   }, []);

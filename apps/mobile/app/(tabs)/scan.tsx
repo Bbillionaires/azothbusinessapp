@@ -167,8 +167,7 @@ export default function ScanScreen() {
             </View>
           ) : (
             <ReceiptUploader
-              onCameraPress={() => handlePickImage(true)}
-              onGalleryPress={() => handlePickImage(false)}
+              onImageSelected={(uri) => setSelectedImage(uri)}
             />
           )}
 
@@ -202,7 +201,7 @@ export default function ScanScreen() {
             </View>
           ) : (
             receipts.map(receipt => (
-              <ReceiptStatus key={receipt.id} receipt={receipt} />
+              <ReceiptStatus key={receipt.id} receipt={receipt as unknown as import('../../../../packages/shared/src/types/receipt').ReceiptWithBusiness} />
             ))
           )}
         </ScrollView>

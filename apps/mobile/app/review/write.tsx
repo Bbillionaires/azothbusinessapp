@@ -48,7 +48,7 @@ export default function WriteReviewScreen() {
     setSubmitting(true);
     const { error } = await supabase.from('reviews').insert({
       business_id,
-      reviewer_id: user.id,
+      reviewer_id: user!.id,
       rating,
       title: title || null,
       body,

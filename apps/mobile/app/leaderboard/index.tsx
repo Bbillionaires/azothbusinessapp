@@ -74,8 +74,8 @@ function formatScore(score: number | null, tab: LeaderboardTab): string {
 function maskName(displayName: string | null | undefined): string {
   if (!displayName) return 'Anonymous';
   const parts = displayName.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+  if (parts.length === 1) return parts[0] ?? 'Anonymous';
+  return `${parts[0] ?? ''} ${(parts[parts.length - 1] ?? '')[0]?.toUpperCase() ?? ''}.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ interface EntryRowProps {
 function EntryRow({ entry, activeTab, isCurrentUser }: EntryRowProps) {
   const medal = RANK_MEDALS[entry.rank];
   const tier = entry.profiles?.tier ?? 'bronze';
-  const tierInfo = TierColors[tier] ?? TierColors.bronze;
+  const tierInfo = TierColors[tier] ?? TierColors['bronze'] ?? { bg: '#FFF', color: '#888', emoji: '🥉', label: 'Bronze' };
   const name = maskName(entry.profiles?.full_name);
 
   if (medal) {

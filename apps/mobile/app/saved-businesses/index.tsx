@@ -41,7 +41,7 @@ export default function SavedBusinessesScreen() {
         .select('id, created_at, business:businesses(id, name, category, city, state, average_rating, total_reviews)')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
-      setSaved((data ?? []) as SavedBusiness[]);
+      setSaved((data ?? []) as unknown as SavedBusiness[]);
       setLoading(false);
     }
     load();

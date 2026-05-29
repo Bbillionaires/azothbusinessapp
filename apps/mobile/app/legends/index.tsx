@@ -67,8 +67,8 @@ const TIER_ORDER = ['hall_of_legends', 'legend', 'platinum', 'gold', 'silver', '
 function maskName(name: string | null | undefined): string {
   if (!name) return 'Anonymous';
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+  if (parts.length === 1) return parts[0] ?? 'Anonymous';
+  return `${parts[0] ?? ''} ${(parts[parts.length - 1] ?? '')[0]?.toUpperCase() ?? ''}.`;
 }
 
 function formatScore(score: number | null | undefined): string {
@@ -122,7 +122,7 @@ interface LegendRowProps {
 }
 
 function LegendRow({ legend }: LegendRowProps) {
-  const config = TIER_CONFIG[legend.tier] ?? TIER_CONFIG.bronze;
+  const config = TIER_CONFIG[legend.tier] ?? TIER_CONFIG['bronze'] ?? { color: '#888', bg: '#eee', border: '#ccc', emoji: '🥉', label: 'Bronze' };
   const name = maskName(legend.profiles?.full_name);
 
   return (
@@ -195,7 +195,7 @@ export default function LegendsScreen() {
   // User's own legend entry (if they have one)
   const myLegend = user?.id ? legends.find((l) => l.user_id === user.id) : null;
   const userTier = myLegend?.tier ?? (profile as any)?.tier ?? 'bronze';
-  const userConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.bronze;
+  const userConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG['bronze'] ?? { color: '#888', bg: '#eee', border: '#ccc', emoji: '🥉', label: 'Bronze' };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -256,7 +256,7 @@ export default function LegendsScreen() {
 
             {/* Tier groups */}
             {grouped.map(({ tier, entries }) => {
-              const config = TIER_CONFIG[tier];
+              const config = TIER_CONFIG[tier] ?? { color: '#888', bg: '#eee', border: '#ccc', emoji: '🥉', label: tier };
               return (
                 <View key={tier} style={styles.section}>
                   <View style={styles.sectionHeaderRow}>
@@ -334,9 +334,9 @@ export default function LegendsScreen() {
               {/* Tier ladder preview */}
               <View style={styles.tierLadder}>
                 {TIER_ORDER.slice(1).map((tier, i) => {
-                  const cfg = TIER_CONFIG[tier];
+                  const cfg = TIER_CONFIG[tier] ?? { color: '#888', bg: '#eee', border: '#ccc', emoji: '🥉', label: tier, order: 0 };
                   const isCurrent = tier === userTier;
-                  const isPast = TIER_CONFIG[tier].order < (TIER_CONFIG[userTier]?.order ?? 99);
+                  const isPast = (TIER_CONFIG[tier]?.order ?? 0) < (TIER_CONFIG[userTier]?.order ?? 99);
                   return (
                     <View key={tier} style={styles.ladderItem}>
                       <View style={[

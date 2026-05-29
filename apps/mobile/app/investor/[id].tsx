@@ -77,7 +77,7 @@ function yearsInBusiness(yearFounded: number | null): string {
 
 function getDemoRevenueRange(id: string): string {
   const idx = id.charCodeAt(0) % REVENUE_RANGES.length;
-  return REVENUE_RANGES[idx];
+  return REVENUE_RANGES[idx] ?? 'Under $100K';
 }
 
 function getDemoInvestmentTypes(id: string): string[] {
@@ -85,7 +85,7 @@ function getDemoInvestmentTypes(id: string): string[] {
   const startIdx = id.charCodeAt(0) % INVESTMENT_TYPES.length;
   return INVESTMENT_TYPES.slice(startIdx, startIdx + typeCount).length > 0
     ? INVESTMENT_TYPES.slice(startIdx, startIdx + typeCount)
-    : [INVESTMENT_TYPES[0]];
+    : [INVESTMENT_TYPES[0] ?? 'Partnership'];
 }
 
 // ---------------------------------------------------------------------------
@@ -117,8 +117,8 @@ export default function InvestorDetailScreen() {
       .single()
       .then(({ data, error }) => {
         if (!error && data) setBusiness(data as Business);
-      })
-      .finally(() => setIsLoading(false));
+        setIsLoading(false);
+      }, () => setIsLoading(false));
   }, [id]);
 
   const handleExpressInterest = async () => {
@@ -244,7 +244,7 @@ export default function InvestorDetailScreen() {
             <Text style={styles.sectionTitle}>Investment Opportunity</Text>
             <View style={styles.chipsRow}>
               {investmentTypes.map((type) => {
-                const chip = INVESTMENT_CHIP_COLORS[type] ?? INVESTMENT_CHIP_COLORS.Partnership;
+                const chip = INVESTMENT_CHIP_COLORS[type] ?? INVESTMENT_CHIP_COLORS['Partnership'] ?? { bg: '#F0FFF4', text: '#276749' };
                 return (
                   <View key={type} style={[styles.typeChip, { backgroundColor: chip.bg }]}>
                     <Text style={[styles.typeChipText, { color: chip.text }]}>{type}</Text>
@@ -287,7 +287,7 @@ export default function InvestorDetailScreen() {
             onPress={() => setModalVisible(true)}
             activeOpacity={0.85}
           >
-            <Ionicons name="handshake-outline" size={20} color="#fff" />
+            <Ionicons name="hand-left-outline" size={20} color="#fff" />
             <Text style={styles.interestBtnText}>Express Interest</Text>
           </TouchableOpacity>
 

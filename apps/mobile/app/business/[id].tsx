@@ -57,7 +57,7 @@ export default function BusinessDetailScreen() {
           .eq('status', 'published')
           .order('created_at', { ascending: false })
           .limit(20);
-        if (data) setReviews(data as Review[]);
+        if (data) setReviews(data as unknown as Review[]);
       } else if (activeTab === 'Events') {
         const { data } = await supabase
           .from('events')
@@ -182,7 +182,7 @@ export default function BusinessDetailScreen() {
             </View>
           )}
 
-          <BusinessBadges business={business} />
+          <BusinessBadges business={business as unknown as import('../../../../packages/shared/src/types/business').BusinessCard} />
 
           {ageBadge && (
             <View style={[styles.ageBadge, { borderColor: ageBadge.color }]}>

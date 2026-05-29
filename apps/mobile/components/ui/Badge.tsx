@@ -12,11 +12,13 @@ interface BadgeProps {
   label: string;
   variant?: BadgeVariant;
   small?: boolean;
+  size?: 'sm' | 'md' | 'lg' | undefined;
   style?: ViewStyle;
   icon?: React.ReactNode;
 }
 
-export function Badge({ label, variant = 'primary', small = false, style, icon }: BadgeProps) {
+export function Badge({ label, variant = 'primary', small = false, size, style, icon }: BadgeProps) {
+  if (size === 'sm') small = true;
   return (
     <View style={[styles.base, styles[variant], small && styles.small, style]}>
       {icon && <View style={styles.icon}>{icon}</View>}

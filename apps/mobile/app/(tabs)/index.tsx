@@ -139,7 +139,7 @@ export default function HomeScreen() {
     }
 
     if (eventsResult.data) {
-      setUpcomingEvents(eventsResult.data as UpcomingEvent[]);
+      setUpcomingEvents(eventsResult.data as unknown as UpcomingEvent[]);
     }
   }, [profile?.id]);
 
@@ -154,8 +154,8 @@ export default function HomeScreen() {
   };
 
   const tierInfo = profile ? TierColors[profile.tier] : TierColors['bronze'];
-  const featuredBusinesses = businesses.filter((b) => b.is_featured).slice(0, 10);
-  const localBusinesses = businesses.filter((b) => b.is_local_owned).slice(0, 10);
+  const featuredBusinesses = businesses.filter((b) => b.is_featured).slice(0, 10) as unknown as import('../../../../packages/shared/src/types/business').BusinessCard[];
+  const localBusinesses = businesses.filter((b) => b.is_local_owned).slice(0, 10) as unknown as import('../../../../packages/shared/src/types/business').BusinessCard[];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -263,7 +263,7 @@ export default function HomeScreen() {
           <View style={styles.sectionPadded}>
             <LeaderboardCard
               entries={leaderboard}
-              currentUserRank={currentUserRank}
+              {...(currentUserRank !== undefined ? { currentUserRank } : {})}
               onViewAll={() => router.push('/leaderboard')}
             />
           </View>

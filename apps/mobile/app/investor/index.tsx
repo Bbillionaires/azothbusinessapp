@@ -46,7 +46,7 @@ const FILTER_TABS: InvestmentType[] = ['All', 'Funding', 'Acquisition', 'Partner
 const INVESTMENT_TYPES: InvestmentType[] = ['Funding', 'Acquisition', 'Partnership', 'Franchise'];
 function getDemoInvestmentType(id: string): InvestmentType {
   const idx = id.charCodeAt(0) % INVESTMENT_TYPES.length;
-  return INVESTMENT_TYPES[idx];
+  return INVESTMENT_TYPES[idx] ?? 'Funding';
 }
 
 const INVESTMENT_CHIP_COLORS: Record<string, { bg: string; text: string }> = {
@@ -67,7 +67,7 @@ interface BusinessCardProps {
 }
 
 function BusinessCard({ item, investmentType, onPress }: BusinessCardProps) {
-  const chipColor = INVESTMENT_CHIP_COLORS[investmentType] ?? INVESTMENT_CHIP_COLORS.Partnership;
+  const chipColor = INVESTMENT_CHIP_COLORS[investmentType] ?? INVESTMENT_CHIP_COLORS['Partnership'] ?? { bg: '#F0FFF4', text: '#276749' };
   return (
     <Pressable
       onPress={onPress}
