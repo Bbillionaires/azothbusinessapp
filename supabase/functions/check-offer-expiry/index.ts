@@ -1,7 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Validate cron secret
   const authHeader = req.headers.get('Authorization')
   if (authHeader !== `Bearer ${Deno.env.get('CRON_SECRET')}`) {

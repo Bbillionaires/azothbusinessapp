@@ -52,7 +52,7 @@ export default function RoleGuard({ children, allowedRoles, fallback }: RoleGuar
         }
 
         const { data: adminProfile, error } = await supabase
-          .from('admin_profiles')
+          .from('profiles')
           .select('id, email, full_name, role, avatar_url')
           .eq('id', user.id)
           .single();

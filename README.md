@@ -24,7 +24,7 @@ apps/
   business-portal/  Next.js 14 — business owner dashboard (port 3001)
   admin-portal/     Next.js 14 — staff/manager/super admin panel (port 3002)
 packages/
-  database/         SQL migrations (Supabase/PostgreSQL, run in order 001→015)
+  database/         SQL migrations (Supabase/PostgreSQL, run in order 001→027)
   shared/           Shared TypeScript types + constants (published as @local-first-rewards/shared)
 supabase/
   functions/        Deno edge functions (deployed to Supabase)
@@ -118,7 +118,7 @@ Apply migrations in order using Supabase SQL editor or CLI:
 packages/database/migrations/001_core_auth.sql
 packages/database/migrations/002_...
 ...through...
-packages/database/migrations/015_audit_logs.sql
+packages/database/migrations/027_audit_logs.sql
 ```
 
 Then run `supabase/config/storage.sql` to create storage buckets (receipts, avatars, business photos).

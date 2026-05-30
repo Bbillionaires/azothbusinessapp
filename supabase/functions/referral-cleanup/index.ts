@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 /**
@@ -7,7 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
  * 2. Expires old referral marketplace entries that have passed their expiry date
  * 3. Awards any pending referral bonuses that have not yet been processed
  */
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Validate cron secret
   const authHeader = req.headers.get('Authorization')
   if (authHeader !== `Bearer ${Deno.env.get('CRON_SECRET')}`) {

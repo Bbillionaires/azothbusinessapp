@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
 
       // Verify the user has an admin role
       const { data: profile, error: profileError } = await supabase
-        .from('admin_profiles')
+        .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single();

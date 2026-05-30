@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { TrendingUp, Users, MapPin, ShieldCheck, BarChart2, ArrowRight } from 'lucide-react'
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export const metadata: Metadata = {
   title: 'Invest in Local First Rewards™ | Opportunities',
@@ -8,12 +9,68 @@ export const metadata: Metadata = {
     'Discover investment opportunities with Local First Rewards™ — the platform connecting Black-owned and community businesses with loyal local customers.',
 }
 
-const STATS = [
+export const revalidate = 300
+
+const FALLBACK_STATS = [
   { label: 'Businesses on platform', value: '2,400+' },
   { label: 'Active community members', value: '18,000+' },
   { label: 'Cities covered', value: '35' },
   { label: 'Monthly transactions', value: '$1.2M+' },
 ]
+
+async function fetchStats() {
+  try {
+    const supabase = await createServerSupabaseClient()
+
+    const [bizRes, profilesRes, citiesRes, pointsRes] = await Promise.all([
+      supabase.from('businesses').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('businesses').select('city'),
+      supabase.from('points_transactions').select('amount').gt('amount', 0),
+    ])
+
+    if (bizRes.error || profilesRes.error || citiesRes.error || pointsRes.error) {
+      return null
+    }
+
+    const bizCount = bizRes.count ?? 0
+    const profileCount = profilesRes.count ?? 0
+
+    const distinctCities = new Set(
+      (citiesRes.data ?? [])
+        .map((b: { city: string | null }) => b.city?.trim().toLowerCase())
+        .filter(Boolean)
+    ).size
+
+    const totalPoints = (pointsRes.data ?? []).reduce(
+      (sum: number, r: { amount: number }) => sum + (r.amount ?? 0),
+      0
+    )
+    // $1 per point
+    const totalDollars = totalPoints
+
+    const formatCount = (n: number, suffix = '+') => {
+      if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M${suffix}`
+      if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K${suffix}`
+      return `${n}${suffix}`
+    }
+
+    const formatDollars = (n: number) => {
+      if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M+`
+      if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K+`
+      return `$${n}+`
+    }
+
+    return [
+      { label: 'Businesses on platform', value: formatCount(bizCount) },
+      { label: 'Active community members', value: formatCount(profileCount) },
+      { label: 'Cities covered', value: String(distinctCities) },
+      { label: 'Monthly transactions', value: formatDollars(totalDollars) },
+    ]
+  } catch {
+    return null
+  }
+}
 
 const WHY_US = [
   {
@@ -75,7 +132,9 @@ const FEATURED_BUSINESSES = [
   { name: 'Community Roots Bookstore', city: 'Chicago, IL', category: 'Retail', tier: 'Basic' },
 ]
 
-export default function InvestorPage() {
+export default async function InvestorPage() {
+  const stats = (await fetchStats()) ?? FALLBACK_STATS
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Nav */}
@@ -140,7 +199,7 @@ export default function InvestorPage() {
       {/* Stats */}
       <section className="bg-brand-green-50 border-b border-brand-green-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {STATS.map((s, i) => (
+          {stats.map((s, i) => (
             <div key={i} className="text-center">
               <p className="text-3xl font-extrabold text-brand-green-800">{s.value}</p>
               <p className="text-sm text-brand-green-700 mt-1 font-medium">{s.label}</p>
