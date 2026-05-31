@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, createContext, useContext, useCallback } from 'react'
-import { CheckCircle, XCircle, Info, X } from 'lucide-react'
+import { CheckCircle, XCircle, Info, X, type LucideIcon } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -63,7 +63,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     info: 'bg-blue-600 text-white',
   }
 
-  const IconMap: Record<ToastType, React.ComponentType<{ size?: number; className?: string }>> = {
+  const IconMap: Record<ToastType, LucideIcon> = {
     success: CheckCircle,
     error: XCircle,
     info: Info,
