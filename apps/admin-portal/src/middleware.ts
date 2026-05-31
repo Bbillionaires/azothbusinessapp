@@ -13,55 +13,39 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setAll(cookiesToSet: any[]) {
+          cookiesToSet.forEach(({ name, value }: any) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            supabaseResponse.cookies.set(name, value, options as any)
+          cookiesToSet.forEach(({ name, value, options }: any) =>
+            supabaseResponse.cookies.set(name, value, options)
           )
         },
       },
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
-  // Allow auth routes and the unauthorized page without checking role
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/unauthorized') ||
-    pathname.startsWith('/(auth)')
+    pathname.startsWith('/api/health')
   ) {
     return supabaseResponse
   }
 
-  // Require authentication for all other routes
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Check admin role from profiles table
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const adminRoles = ['admin_staff', 'admin_manager', 'super_admin']
-  if (!profile || !adminRoles.includes(profile.role)) {
-    return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
