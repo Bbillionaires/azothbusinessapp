@@ -78,7 +78,7 @@ export default function DataTable<T extends { id: string }>({
     if (allSelected) {
       onSelectionChange(selectedIds.filter((id) => !paginated.find((r) => r.id === id)));
     } else {
-      const newIds = [...new Set([...selectedIds, ...paginated.map((r) => r.id)])];
+      const newIds = Array.from(new Set([...selectedIds, ...paginated.map((r) => r.id)]));
       onSelectionChange(newIds);
     }
   }

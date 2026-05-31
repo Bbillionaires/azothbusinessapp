@@ -60,7 +60,7 @@ export default function AuditPage() {
     load();
   }, []);
 
-  const uniqueActions = ['All', ...new Set(logs.map(l => l.action))];
+  const uniqueActions = ['All', ...Array.from(new Set(logs.map(l => l.action)))];
 
   const filtered = logs.filter(log => {
     const actor = log.profiles?.full_name ?? log.profiles?.email ?? log.actor_id;

@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
   for (const r of receipts) {
     customerMap.set(r.user_id, (customerMap.get(r.user_id) ?? 0) + (r.total ?? 0));
   }
-  const topCustomers = [...customerMap.entries()]
+  const topCustomers = Array.from(customerMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([userId, spent]) => ({ user_id: userId, total_spent: spent }));
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
     const weekKey = new Date(d.setDate(d.getDate() - d.getDay())).toISOString().split('T')[0];
     weekMap.set(weekKey, (weekMap.get(weekKey) ?? 0) + (r.total ?? 0));
   }
-  const weeklyData = [...weekMap.entries()]
+  const weeklyData = Array.from(weekMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([week, amount]) => ({ week, amount: Math.round(amount) }));
 
