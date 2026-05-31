@@ -1,49 +1,30 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setAll(cookiesToSet: any[]) {
-          cookiesToSet.forEach(({ name, value }: any) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }: any) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/unauthorized') ||
-    pathname.startsWith('/api/health')
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/health') ||
+    pathname === '/favicon.ico'
   ) {
-    return supabaseResponse
+    return NextResponse.next()
   }
 
-  if (!user) {
+  // Check for Supabase session cookie (project ref: gfcvwpmxnukvqkyiyhtj)
+  const sessionCookie =
+    request.cookies.get('sb-gfcvwpmxnukvqkyiyhtj-auth-token') ||
+    request.cookies.get('sb-gfcvwpmxnukvqkyiyhtj-auth-token.0') ||
+    request.cookies.get('sb-access-token')
+
+  if (!sessionCookie) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {
