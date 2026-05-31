@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Admin Portal — Local First Rewards',
   description: 'Internal admin dashboard for Local First Rewards platform management.',

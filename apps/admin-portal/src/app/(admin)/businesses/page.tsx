@@ -13,7 +13,7 @@ interface BusinessRow {
   category: string | null;
   city: string | null;
   state: string | null;
-  status: string | null;
+  status: import('@/lib/supabase').BusinessStatus | null;
   verification_level: string | null;
   is_local_owned: boolean | null;
   is_community_owned: boolean | null;

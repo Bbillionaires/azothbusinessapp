@@ -19,7 +19,7 @@ interface BusinessDetail {
   phone: string | null;
   website: string | null;
   email: string | null;
-  status: string;
+  status: import('@/lib/supabase').BusinessStatus;
   verification_level: string | null;
   is_local_owned: boolean;
   is_community_owned: boolean;

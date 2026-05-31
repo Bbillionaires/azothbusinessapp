@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Download, Loader2 } from 'lucide-react';
-import { RoleGuard } from '../../../components/layout/RoleGuard';
+import RoleGuard from '../../../components/layout/RoleGuard';
 import { createBrowserClient } from '@supabase/ssr';
 import { format } from 'date-fns';
 
@@ -95,7 +95,7 @@ export default function AuditPage() {
   }
 
   return (
-    <RoleGuard requiredRole="super_admin">
+    <RoleGuard allowedRoles={["super_admin"]}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

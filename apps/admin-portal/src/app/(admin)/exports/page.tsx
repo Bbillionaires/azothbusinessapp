@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Download, FileText, Users, Store, Receipt, BarChart2, ShieldAlert, CheckCircle, XCircle, Clock, Coins } from 'lucide-react';
-import { RoleGuard } from '../../../components/layout/RoleGuard';
+import RoleGuard from '../../../components/layout/RoleGuard';
 
 type ExportType = 'users' | 'businesses' | 'receipts' | 'analytics' | 'transactions';
 
@@ -123,7 +123,7 @@ export default function ExportsPage() {
   }
 
   return (
-    <RoleGuard requiredRole="super_admin">
+    <RoleGuard allowedRoles={["super_admin"]}>
       <div className="space-y-6 max-w-4xl">
         {/* Page header */}
         <div className="flex items-start gap-3 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl">

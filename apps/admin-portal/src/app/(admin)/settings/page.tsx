@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Save, RefreshCw, AlertTriangle } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
-import { RoleGuard } from '../../../components/layout/RoleGuard';
+import RoleGuard from '../../../components/layout/RoleGuard';
 
 const SECTIONS = [
   {
@@ -129,7 +129,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <RoleGuard requiredRole="super_admin">
+    <RoleGuard allowedRoles={["super_admin"]}>
       <div className="space-y-6 max-w-3xl">
         <div className="flex items-center justify-between">
           <div>

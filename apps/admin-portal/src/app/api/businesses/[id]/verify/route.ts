@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase'
+import { createSupabaseServiceClient } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import type { AdminRole } from '@/lib/supabase'
 
 type VerificationLevel = 'none' | 'basic' | 'pro' | 'elite' | 'community_trusted'
