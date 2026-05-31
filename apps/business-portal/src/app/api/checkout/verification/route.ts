@@ -3,15 +3,14 @@ import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
-
-const PRICE_IDS: Record<string, string> = {
-  basic: process.env.STRIPE_PRICE_GREENWOOD_BASIC!,
-  pro: process.env.STRIPE_PRICE_GREENWOOD_PRO!,
-  elite: process.env.STRIPE_PRICE_GREENWOOD_ELITE!,
+const PRICE_IDS: Record<string, string | undefined> = {
+  basic: process.env.STRIPE_PRICE_GREENWOOD_BASIC,
+  pro: process.env.STRIPE_PRICE_GREENWOOD_PRO,
+  elite: process.env.STRIPE_PRICE_GREENWOOD_ELITE,
 };
 
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

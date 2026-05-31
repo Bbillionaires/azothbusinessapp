@@ -3,9 +3,7 @@ import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
-
-const PRICE_IDS: Record<string, string> = {
+const PRICE_IDS: Record<string, string | undefined> = {
   sponsored_listing: process.env.STRIPE_PRICE_SPONSORED_LISTING!,
   banner: process.env.STRIPE_PRICE_BANNER!,
   push_notification: process.env.STRIPE_PRICE_PUSH_NOTIFICATION!,
@@ -18,6 +16,7 @@ const AD_NAMES: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
