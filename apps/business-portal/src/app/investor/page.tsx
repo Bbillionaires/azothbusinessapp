@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { TrendingUp, Users, MapPin, ShieldCheck, BarChart2, ArrowRight } from 'lucide-react'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export const metadata: Metadata = {
   title: 'Invest in Local First Rewards™ | Opportunities',
