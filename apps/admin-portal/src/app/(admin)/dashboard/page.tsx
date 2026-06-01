@@ -1,7 +1,12 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import dynamic from 'next/dynamic';
 import PlatformStatsGrid from '@/components/analytics/PlatformStatsGrid';
-import EconomicImpactChart from '@/components/analytics/EconomicImpactChart';
 import ReceiptReviewCard from '@/components/receipts/ReceiptReviewCard';
+
+const EconomicImpactChart = dynamic(
+  () => import('@/components/analytics/EconomicImpactChart'),
+  { ssr: false, loading: () => <div className="h-64 bg-slate-800 rounded-xl animate-pulse" /> }
+);
 import StatusBadge from '@/components/ui/StatusBadge';
 import { format, subDays } from 'date-fns';
 import Link from 'next/link';
