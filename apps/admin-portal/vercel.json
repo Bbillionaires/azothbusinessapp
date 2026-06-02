@@ -3,6 +3,12 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_SUPABASE_URL": "https://gfcvwpmxnukvqkyiyhtj.supabase.co",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmY3Z3cG14bnVrdnFreWl5aHRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzA1OTAsImV4cCI6MjA5NTcwNjU5MH0.6hDCH0fw2ESaVqDtjPBdO5f1j3cQYrfTBDN662OaZDU"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
