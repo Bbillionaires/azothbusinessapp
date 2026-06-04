@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
-    "expo": "~51.0.0",
+    "expo": "51.0.40",
     "expo-router": "~3.5.0",
     "expo-camera": "~15.0.0",
     "expo-image-picker": "~15.1.0",
@@ -34,6 +34,9 @@
     "react-native-screens": "3.31.1",
     "@expo/vector-icons": "^14.0.0",
     "date-fns": "^3.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
