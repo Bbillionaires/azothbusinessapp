@@ -18,6 +18,7 @@
       }
     },
     "production": {
+      "prebuildCommand": "npx expo@51 prebuild",
       "env": {
         "APP_ENV": "production"
       },
