@@ -2,17 +2,7 @@
   "name": "local-first-rewards",
   "version": "1.0.0",
   "private": true,
-  "workspaces": {
-    "packages": ["apps/*", "packages/*"],
-    "nohoist": [
-      "**/react-native",
-      "**/react-native/**",
-      "**/expo",
-      "**/expo/**",
-      "**/expo-modules-core",
-      "**/expo-modules-core/**"
-    ]
-  },
+  "workspaces": ["apps/admin-portal", "apps/business-portal", "packages/*"],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
