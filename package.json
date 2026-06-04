@@ -11,6 +11,9 @@
     "db:migrate": "supabase db push",
     "db:generate": "supabase gen types typescript --local > packages/shared/src/types/supabase.ts"
   },
+  "dependencies": {
+    "expo": "~52.0.0"
+  },
   "devDependencies": {
     "turbo": "^2.0.0",
     "typescript": "^5.4.5",
