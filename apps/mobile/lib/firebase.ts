@@ -1,31 +1,43 @@
 // =============================================================================
-// Firebase Cloud Messaging — push notification setup
+// Push notification setup using expo-notifications (replaces Firebase FCM)
 // =============================================================================
 
-import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
-/**
- * Request FCM permission, retrieve the device token, and persist it to the
- * user_settings row so the backend can target this device.
- *
- * Returns the FCM token, or undefined if permission was denied.
- */
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export async function registerForPushNotifications(
   userId: string
 ): Promise<string | undefined> {
-  const authStatus = await messaging().requestPermission();
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
 
-  if (
-    authStatus !== messaging.AuthorizationStatus.AUTHORIZED &&
-    authStatus !== messaging.AuthorizationStatus.PROVISIONAL
-  ) {
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
     return undefined;
   }
 
-  const token = await messaging().getToken();
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+    });
+  }
 
-  // Persist the token so edge functions can send targeted notifications
+  const token = (await Notifications.getExpoPushTokenAsync()).data;
+
   await supabase
     .from('user_settings')
     .update({ fcm_token: token })
@@ -34,18 +46,12 @@ export async function registerForPushNotifications(
   return token;
 }
 
-/**
- * Register foreground and background message handlers.
- * Call once near app startup (e.g. inside the root _layout).
- */
 export function setupNotificationHandlers(): void {
-  // Foreground handler — app is open and running
-  messaging().onMessage(async (remoteMessage) => {
-    console.log('FCM foreground:', remoteMessage);
+  Notifications.addNotificationReceivedListener((notification) => {
+    console.log('Notification received:', notification);
   });
 
-  // Background / quit handler — app is in the background or closed
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    console.log('FCM background:', remoteMessage);
+  Notifications.addNotificationResponseReceivedListener((response) => {
+    console.log('Notification tapped:', response);
   });
 }
