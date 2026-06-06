@@ -1,13 +1,12 @@
-// PostHog mobile analytics
-// @ts-ignore — package installed via app.json
-import PostHog from 'posthog-react-native'
+// PostHog analytics — stubbed to avoid native dependency
+// To enable, add posthog-react-native to package.json
 
-let client: PostHog | null = null
+let client: { capture: (e: string, p?: Record<string, unknown>) => void; identify: (id: string, t?: Record<string, unknown>) => void; reset: () => void } | null = null
 
 export function initMobileAnalytics() {
   const key = process.env.EXPO_PUBLIC_POSTHOG_KEY
-  if (!key || client) return
-  client = new PostHog(key, { host: 'https://app.posthog.com' })
+  if (!key || client || typeof window === 'undefined') return
+  // PostHog disabled — add posthog-react-native package to enable
 }
 
 export function trackMobileEvent(event: string, properties?: Record<string, unknown>) {
