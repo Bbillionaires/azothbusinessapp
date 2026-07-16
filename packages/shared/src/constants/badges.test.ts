@@ -53,7 +53,7 @@ describe('BADGE_DEFINITIONS — tier badges reference valid tier names', () => {
   it.each(tierBadges)('tier badge "$type" references a valid tier in its type name', (badge) => {
     // tier badge types are like "tier_silver", "tier_gold", etc.
     const tierPart = badge.type.replace('tier_', '')
-    expect(VALID_TIERS.has(tierPart as any)).toBe(true)
+    expect(VALID_TIERS.has(tierPart)).toBe(true)
   })
 })
 

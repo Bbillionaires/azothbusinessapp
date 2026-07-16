@@ -282,7 +282,7 @@ export default function BusinessDetailPage() {
               className="block w-full text-left px-4 py-3 rounded-xl text-sm font-semibold bg-slate-700 text-gray-300 hover:bg-slate-600 transition-colors"
             >
               View Owner Profile
-              <span className="block font-normal opacity-70 text-xs mt-0.5">See the owner's user account</span>
+              <span className="block font-normal opacity-70 text-xs mt-0.5">See the owner&apos;s user account</span>
             </Link>
           </div>
         </div>

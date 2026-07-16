@@ -84,10 +84,12 @@ export function formatDistance(miles: number): string {
 export function maskName(fullName: string): string {
   if (!fullName || !fullName.trim()) return ''
   const parts = fullName.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0]
   const firstName = parts[0]
-  const lastInitial = parts[parts.length - 1][0].toUpperCase()
-  return `${firstName} ${lastInitial}.`
+  if (!firstName) return ''
+  if (parts.length === 1) return firstName
+  const lastName = parts[parts.length - 1]
+  const lastInitial = lastName?.[0]?.toUpperCase()
+  return lastInitial ? `${firstName} ${lastInitial}.` : firstName
 }
 
 /**
@@ -97,8 +99,9 @@ export function maskName(fullName: string): string {
 export function generateInitials(name: string): string {
   if (!name || !name.trim()) return ''
   const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return ''
-  if (parts.length === 1) return parts[0][0].toUpperCase()
-  // First initial + last initial
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  const firstName = parts[0]
+  if (!firstName) return ''
+  if (parts.length === 1) return firstName[0]?.toUpperCase() ?? ''
+  const lastName = parts[parts.length - 1]
+  return ((firstName[0] ?? '') + (lastName?.[0] ?? '')).toUpperCase()
 }

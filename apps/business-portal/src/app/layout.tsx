@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: {
     default: 'Business Portal — Local First Rewards™',
